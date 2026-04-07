@@ -1,0 +1,4 @@
+[tools]
+fnox = "latest"
+prek = "latest"
+uv = "latest"

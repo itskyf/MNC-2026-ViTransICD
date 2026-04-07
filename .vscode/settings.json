@@ -1,0 +1,8 @@
+{
+	"editor.codeActionsOnSave": {
+		"source.fixAll.biome": "explicit",
+		"source.fixAll.ruff": "explicit",
+		"source.fixAll.rumdl": "explicit"
+	},
+	"editor.formatOnSave": true
+}
