@@ -4,7 +4,7 @@ See ``docs/data/v1/de-01-schemas.md`` for the canonical design document.
 """
 
 from mnc.schemas.candidate import CandidateLink
-from mnc.schemas.document import DocumentRecord
+from mnc.schemas.document import DocumentRecord, JsonValue
 from mnc.schemas.explanation import EvidenceSpan, ExplanationRecord
 from mnc.schemas.mention import MentionRecord
 from mnc.schemas.ontology import OntologyCode
@@ -16,6 +16,7 @@ __all__ = [
     "DocumentRecord",
     "EvidenceSpan",
     "ExplanationRecord",
+    "JsonValue",
     "MentionRecord",
     "OntologyCode",
     "PredictionRecord",
