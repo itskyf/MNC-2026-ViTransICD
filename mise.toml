@@ -1,6 +1,12 @@
 [tasks.gitnr]
 run = "gitnr create Python --save"
 
+[tasks."ontology:crawl"]
+run = "uv run -m mnc.ontology.crawler data/bronze/kcb_vn_icd10/"
+
+[tasks."ontology:report"]
+run = "uv run -m mnc.ontology.reporter data/bronze/kcb_vn_icd10/"
+
 [tools]
 fnox = "latest"
 prek = "latest"

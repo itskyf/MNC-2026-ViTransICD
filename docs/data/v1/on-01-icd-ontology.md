@@ -1,4 +1,4 @@
-# ICD-10 Ontology by KCB
+# ICD-10 Ontology by icd.kcb.vn
 
 Task: Build a two-part data pipeline (Ingestion + Analytics) for the official Vietnamese ICD-10 ontology used by the KCB/MoH browser.
 
@@ -27,7 +27,7 @@ Important context:
 4. Output layout for the crawler:
 
 ```text
-data/bronze/kcb_vn_icd10/
+<BASE_OUTPUT_DIR>/
   raw/
     endpoint=<endpoint_kind>/lang=<lang>/id=<node_id>/<timestamp_or_hash>.json
   manifests/
@@ -58,3 +58,5 @@ Implementation notes:
 
 - STRICT SEPARATION OF CONCERNS: `crawler` must strictly handle HTTP requests, traversal, and saving JSONs. It must NOT generate markdown or text summaries. `reporter` must strictly read local files and generate the Markdown report. It must NOT make any HTTP requests.
 - Prefer a recursive/queue-based crawler over a fixed-depth script.
+- Accept a positional argument for the base data directory (defaulting to `data/bronze/kcb_vn_icd10/`).
+- Code is implemented inside `src/mnc/ontology`.
