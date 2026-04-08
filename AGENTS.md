@@ -15,3 +15,4 @@
 ## Skills
 
 - `get-api-docs`: use to fetch the latest API, SDK, or library documentation.
+- Leverage `hf-mcp-server` tools.
