@@ -1,0 +1,13 @@
+fix = true
+
+[lint]
+select = ["ALL"]
+ignore = []
+
+[lint.per-file-ignores]
+"tests/*" = [
+  "S101",  # assert
+]
+
+[lint.pydocstyle]
+convention = "google"

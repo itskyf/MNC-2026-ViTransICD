@@ -1,3 +1,6 @@
+[tasks.gitnr]
+run = "gitnr create Python --save"
+
 [tools]
 fnox = "latest"
 prek = "latest"

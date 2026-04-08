@@ -6,13 +6,27 @@ readme = "README.md"
 requires-python = ">=3.13"
 authors = [{ name = "Kỳ", email = "40734986+itskyf@users.noreply.github.com" }]
 dependencies = [
+  "httpx>=0.28.1",
+  "polars[rt64]>=1.39.3",
+  "tenacity>=9.1.4",
   "torch>=2.11.0",
   "transformers>=5.5.0",
 ]
 
-[project.scripts]
-mnc = "mnc:main"
+[dependency-groups]
+dev = [
+  "datalayer-pycrdt>=0.12.17",
+  "jupyter-collaboration>=4.3.0",
+  "jupyter-mcp-server>=1.0.0",
+  "jupyterlab>=4.5.6",
+  "ruff>=0.15.9",
+]
 
 [build-system]
 requires = ["uv_build>=0.11.3,<0.12.0"]
 build-backend = "uv_build"
+
+[tool.uv]
+override-dependencies = [
+  "jupyter-ydoc==3.4.0",
+]
