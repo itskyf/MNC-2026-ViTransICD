@@ -1,172 +1,119 @@
-# DE-2 Spec: Ingest Public Datasets
+# DE-2 Spec: Snapshot public datasets to raw
 
 ## Goal
 
-Implement a unified ingestion pipeline for public Vietnamese medical datasets.
-
-The pipeline must read raw source files, convert each sample into the DE-1 schema defined in `src/mnc/schemas`, and save reproducible ingestion artifacts for downstream tasks.
-
-This task is only about ingestion. It must not perform text normalization, sentence segmentation, ontology linking, weak supervision, or model training.
-
-## References
-
-- DE-1 schema: `src/mnc/schemas`
-- Data schema document: `docs/data/v1/de-01-schemas.md`
+* Implement a minimal ingestion task that snapshots the two public datasets into source-faithful records.
+* Keep this task as raw snapshot semantics, but persist outputs under `data/bronze/<dataset_name>/...` because that is the current repo convention.
+* Do not do text normalization, stripping, segmentation, mention extraction, or label construction here.
 
 ## Scope
 
-The ingestion pipeline must support public datasets used in this project, including the currently selected sources such as VietMed-Sum and PET/CT.
-
-The implementation should be source-extensible. Adding a new dataset should require a new adapter, not changes to the core ingestion flow.
-
-## Inputs
-
-- A dataset identifier
-- A local input path or configured raw data directory
-- Optional split information if provided by the source
-- Optional source-specific metadata
-
-## Outputs
-
-- One DE-1-compliant record per ingested sample
-- A line-delimited JSON or JSON file for ingested records
-- A manifest file summarizing ingestion results
-- An error file for skipped or failed samples
-- Deterministic record IDs and content hashes when possible
-
-## Required behavior
-
-- Load raw public dataset files from disk
-- Parse source-specific fields with a dataset adapter
-- Map parsed samples into the DE-1 schema from `src/mnc/schemas`
-- Preserve source provenance
-- Preserve the original raw text needed by downstream tasks
-- Preserve split if the source provides it
-- Skip invalid rows safely and log them
-- Continue ingestion when individual rows fail
-- Produce stable output for repeated runs on the same input
+* Dataset 1: [leduckhai/VietMed-Sum](https://huggingface.co/datasets/leduckhai/VietMed-Sum). It is a Hugging Face dataset for medical conversation summarization, stored as Parquet, with many predefined splits and at least `transcript` and `summary` fields visible in the viewer.
+* Dataset 2: [tarudesu/ViHealthQA](https://huggingface.co/datasets/tarudesu/ViHealthQA). It is a Hugging Face dataset for Vietnamese medical QA, stored as CSV, with `train.csv`, `val.csv`, `test.csv`, and core fields `id`, `question`, `answer`, `link`.
 
 ## Non-goals
 
-- No text normalization
-- No sentence segmentation
-- No ontology parsing
-- No mention extraction
-- No silver labeling
-- No train/dev/test re-splitting beyond source-provided split
+* No semantic cleanup.
+* No lowercasing.
+* No whitespace normalization beyond what is required to read the file safely.
+* No deduplication across datasets.
+* No train/val/test reshuffling.
+* No ontology linking.
+* No silver labels.
 
-## Dataset adapter contract
+## Implementation rules
 
-Each dataset adapter should expose a small, uniform interface.
+* Use Pydantic schemas from `src/mnc/schemas/`.
+* Write one bronze snapshot per dataset split.
+* Preserve source field names as much as possible.
+* Add only minimal ingestion metadata needed for lineage and reproducibility.
+* Fail fast on unreadable files or schema-invalid records.
+* Keep the code small and deterministic.
 
-- `dataset_name() -> str`
-- `iter_raw_samples(input_path) -> Iterable[object]`
-- `to_de1_record(raw_sample) -> BaseModel`
-- `validate_raw_sample(raw_sample) -> bool`
+## Output layout
 
-The adapter is responsible for source-specific parsing only.
+* `data/bronze/vietmed_sum/<split>.jsonl`
+* `data/bronze/vietmed_sum/manifest.json`
+* `data/bronze/vihealthqa/<split>.jsonl`
+* `data/bronze/vihealthqa/manifest.json`
 
-The core pipeline is responsible for orchestration, validation, logging, and writing outputs.
+## Required schema shape
 
-## Minimum fields to populate
+* Use an existing Pydantic model from `src/mnc/schemas/` if one already matches bronze snapshot records.
+* If no exact model exists, add a small bronze snapshot schema under `src/mnc/schemas/` and keep it generic.
 
-Populate all required DE-1 fields from `src/mnc/schemas`.
+### Required fields
 
-At minimum, each ingested record should preserve:
+* `dataset_name: str`
+* `source_split: str`
+* `source_record_id: str`
+* `payload: dict[str, str | int | float | bool | None]`
+* `source_format: str`
+* `source_path: str`
+* `ingest_version: str`
 
-- record identity
-- source dataset name
-- source sample identifier if available
-- language
-- raw text
-- split if available
-- minimal metadata needed for provenance and debugging
+### Optional fields
 
-Do not invent labels or ontology fields at this stage.
+* `source_url: str | None`
+* `language: str | None`
+* `raw_checksum: str | None`
 
-## File layout
+## Dataset mapping
 
-Suggested output layout:
+### vietmed_sum
 
-- `data/bronze/<dataset_name>/records.jsonl`
-- `data/bronze/<dataset_name>/manifest.json`
-- `data/bronze/<dataset_name>/errors.jsonl`
+* Read Hugging Face Parquet split files. The dataset exposes many split variants such as `train.train_30s`, `train.train_whole`, `test.test_full_dialogue`, and similar English variants. <https://huggingface.co/datasets/leduckhai/VietMed-Sum/tree/main/data>
+* For the 12-hour plan, ingest only Vietnamese splits.
+* For the 12-hour plan, ingest only these split variants: `train_whole`, `dev_whole`, `test_whole`.
+* Preserve at least `transcript` and `summary` in `payload`, because those fields are visible in the dataset viewer. <https://huggingface.co/datasets/leduckhai/VietMed-Sum>
+* `source_record_id` can be a deterministic hash of the raw row if no stable ID exists.
 
-## Error handling
+### vihealthqa
 
-- Invalid samples must not stop the full run
-- Every failed sample must be logged with dataset name, sample identifier if available, and error message
-- The final manifest must include total rows, successful rows, failed rows, and output paths
+* Read `train.csv`, `val.csv`, `test.csv`. <https://huggingface.co/datasets/tarudesu/ViHealthQA/tree/main>
+* Preserve `id`, `question`, `answer`, and `link` in `payload`. Those fields are visible in the dataset viewer and dataset card. <https://huggingface.co/datasets/tarudesu/ViHealthQA>, <https://huggingface.co/datasets/tarudesu/ViHealthQA/viewer/default?p=1>
+* Use source `id` as `source_record_id`.
+* Map `val.csv` to bronze split name `validation` to avoid ambiguity.
 
-## Determinism
+## Manifest content
 
-- Re-running ingestion on the same input must produce the same record content except for allowed runtime metadata such as timestamps
-- Record IDs should be deterministic when the source provides stable identifiers
-- If the source has no stable identifier, derive one deterministically from content
-
-## CLI or entrypoint
-
-Provide one runnable entrypoint for ingestion.
-
-Example behavior:
-
-- accept dataset name
-- accept input path
-- accept output directory
-- run the correct adapter
-- write records, manifest, and errors
-- print a short summary
+* `dataset_name`
+* `source_url`
+* `source_format`
+* `written_splits`
+* `record_count_by_split`
+* `error_count`
+* `ingest_version`
 
 ## Acceptance criteria
 
-- The pipeline ingests at least the initial target datasets required by the project
-- Every output record validates against the DE-1 schema from `src/mnc/schemas`
-- The pipeline writes records, manifest, and error logs
-- Failed rows are isolated and logged without crashing the run
-- The pipeline is deterministic on repeated runs
-- The implementation is covered by pytest
+* The task reads local raw files for both datasets and writes JSONL files under `data/bronze/<dataset_name>/`.
+* Every output record validates against a Pydantic schema in `src/mnc/schemas/`.
+* `vietmed_sum` writes only the selected Vietnamese `*_whole` splits.
+* `vihealthqa` writes `train`, `validation`, and `test`.
+* A manifest is produced for each dataset.
+* No normalization or semantic transformation is applied.
 
-## Pytest requirements
+## Minimal pytest coverage
 
-Tests must be added under `tests/`.
+* One happy-path test for `vietmed_sum`.
+* One happy-path test for `vihealthqa`.
+* One schema validation failure test.
+* One manifest generation test.
+* One deterministic `source_record_id` test for rows without native IDs.
 
-Minimum required test cases:
+## Test expectations
 
-- test that each supported adapter can read a small fixture input
-- test that each adapter returns DE-1-valid records
-- test that required provenance fields are populated
-- test that split is preserved when present
-- test that missing optional fields do not crash ingestion
-- test that malformed rows are logged and skipped
-- test that the pipeline continues after row-level failures
-- test that repeated runs on the same fixture produce identical records
-- test that manifest counts are correct
-- test that output files are created in the expected locations
+* Use small local fixture files only.
+* Do not call the network in tests.
+* Check that the output path and filenames are correct.
+* Check that preserved source fields remain unchanged in `payload`.
+* Check that `val.csv` becomes `validation`.
 
-## Test fixtures
+## Suggested deliverables
 
-Use tiny local fixtures only.
-
-Each fixture should contain:
-
-- one valid sample
-- one sample with missing optional fields
-- one malformed sample
-
-Do not use network access in tests.
-
-## Implementation notes
-
-- Keep adapters small and explicit
-- Keep the core pipeline schema-driven
-- Validate records at the boundary before writing output
-- Prefer pure functions for row mapping to simplify testing
-- Keep source-specific logic out of the shared pipeline
-
-## Definition of done
-
-- ingestion code implemented
-- adapters added for the selected public datasets
-- outputs written in the expected bronze location
-- pytest suite added and passing
-- documentation updated with supported datasets and run command
+* `src/mnc/data/ingest/de2_snapshot.py`
+* `src/mnc/schemas/bronze.py` only if needed
+* `tests/data/ingest/test_de2_snapshot_vietmed_sum.py`
+* `tests/data/ingest/test_de2_snapshot_vihealthqa.py`
+* `tests/data/ingest/test_de2_snapshot_manifest.py`
