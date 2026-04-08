@@ -27,14 +27,13 @@ Important context:
 4. Output layout for the crawler:
 
 ```text
-data/bronze/
-  moh_vn_icd10/
-    raw/
-      endpoint=<endpoint_kind>/lang=<lang>/id=<node_id>/<timestamp_or_hash>.json
-    manifests/
-      crawl_manifest.json (ledger: one row per request)
-      crawl_errors.json (failed requests)
-      discovery_summary.json (schema inference per endpoint, list of discovered node kinds)
+data/bronze/kcb_vn_icd10/
+  raw/
+    endpoint=<endpoint_kind>/lang=<lang>/id=<node_id>/<timestamp_or_hash>.json
+  manifests/
+    crawl_manifest.json (ledger: one row per request)
+    crawl_errors.json (failed requests)
+    discovery_summary.json (schema inference per endpoint, list of discovered node kinds)
 ```
 
 5. Resilience: retry transient failures with exponential backoff, rate-limit politely, checkpoint progress, deduplicate repeated requests.

@@ -1,0 +1,10 @@
+{
+	"version": 1,
+	"skills": {
+		"get-api-docs": {
+			"source": "andrewyng/context-hub",
+			"sourceType": "github",
+			"computedHash": "ac93c0166df740b4501182bbcaada131280469a121cefcb3b6d57a47e5541fe5"
+		}
+	}
+}

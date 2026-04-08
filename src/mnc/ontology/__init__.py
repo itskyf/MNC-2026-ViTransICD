@@ -1,1 +1,1 @@
-"""ICD-10 Ontology by KCB Module."""
+"""icd.kcb.vn/icd-10 Ontology Module."""
