@@ -5,8 +5,11 @@ select = ["ALL"]
 ignore = []
 
 [lint.per-file-ignores]
-"tests/*" = [
-  "S101",  # assert
+"tests/**/*.py" = [
+  "S101",  # Use of `assert` is required in pytest
+  "PLR2004",  # Magic values are expected for test inputs and outputs
+  "SLF001",  # Accessing private members is necessary for mocking and white-box testing
+  "D",  # Test function names are descriptive enough; docstrings are redundant
 ]
 
 [lint.pydocstyle]

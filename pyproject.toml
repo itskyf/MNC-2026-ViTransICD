@@ -12,6 +12,7 @@ dependencies = [
   "tabulate[widechars]>=0.10.0",
   "tenacity>=9.1.4",
   "torch>=2.11.0",
+  "torchmetrics>=1.9.0",
   "transformers>=5.5.0",
 ]
 
