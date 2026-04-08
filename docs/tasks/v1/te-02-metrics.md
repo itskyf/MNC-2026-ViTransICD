@@ -1,231 +1,308 @@
-# TE-2: Eval Metrics Setup
+# Technical Specification: TE-2 Eval Metrics Setup
 
-## Goal
+## Objective
 
-Set up a small, reusable evaluation module for multilabel classification.
+Implement a small evaluation module for training and baseline workflows.
 
-The module must support both target granularities used in this project:
+The module must:
 
-* ICD chapter
-* ICD-10 3-character code
+* consume existing schemas only from `src/mnc/schemas/`
+* compute metrics for two evaluation modes
+* use `torchmetrics`
+* include basic unit tests with `pytest`
 
-The module must be compatible with later training and benchmarking work, but it must not depend on weak-supervision completion or model architecture details.
-
-## Dependencies
-
-* DE-1 is already complete.
-* Frozen schemas in `src/mnc/schemas/` must not be changed.
-* TE-2 depends only on tensorized labels and prediction scores produced downstream from:
-  * `SilverRecord`
-  * `PredictionRecord`
+No new persisted schema is required in TE-2.
 
 ## Scope
 
-In scope:
+### In scope
 
-* torchmetrics-based metric setup for multilabel evaluation
-* one shared evaluator API for chapter and `code_3char`
-* batch-wise accumulation across an epoch
-* deterministic metric naming
-* pytest unit tests
+* 3-character multi-label evaluation
+* chapter classification evaluation
+* schema-based validation and tensor conversion
+* metric computation utilities
+* simple `pytest` unit tests
 
-Out of scope:
+### Out of scope
 
 * training loop integration
-* dataset split creation
-* ontology mapping
+* logging/report rendering
+* CLI/service/API layer
 * explainability
-* report generation
-* plotting
+* calibration, threshold search, bootstrap CI, distributed sync
+* new database/file output formats
 
-## Required Metrics
+## Required Inputs
 
-Headline metrics:
+Use only these existing schemas as contracts:
 
-* `micro_f1`
-* `macro_f1`
-* `macro_auroc`
+* `PredictionRecord`
+* `SilverRecord`
+* `OntologyCode`
 
-Support metrics:
+## Required Outputs
 
-* `micro_precision`
-* `micro_recall`
+Return in-memory metric dictionaries only.
 
-These metrics are enough for the reduced-scope feasibility study and keep the implementation close to the original proposal without overexpanding scope.
+Recommended return shape:
 
-## Input Contract
+```python
+dict[str, float]
+```
 
-The evaluator works on tensors, not raw schema objects.
+Example keys:
 
-Required inputs:
+```python
+{
+    "micro_f1": 0.0,
+    "macro_f1": 0.0,
+    "macro_auc": 0.0,
+    "precision_at_1": 0.0,
+    "recall_at_1": 0.0,
+}
+```
 
-* `scores`: `torch.FloatTensor` with shape `[batch_size, num_labels]`
-* `targets`: `torch.IntTensor` or `torch.BoolTensor` with shape `[batch_size, num_labels]`
+TE-2 must not introduce a new Pydantic result schema.
+
+## Supported Modes
+
+### Mode 1: 3-character multi-label
+
+Input contract:
+
+* `PredictionRecord.label_granularity == "code_3char"`
+* `SilverRecord.label_granularity == "code_3char"`
+
+Metrics:
+
+* Micro F1
+* Macro F1
+* Macro-AUC
+* P\@k
+* R\@k
+
+### Mode 2: chapter classification
+
+Input contract:
+
+* preferred: `PredictionRecord.label_granularity == "chapter"` and `SilverRecord.label_granularity == "chapter"`
+* also support projection from `code_3char` to chapter using `OntologyCode.chapter_id`
+
+Metrics:
+
+* Accuracy
+* Macro F1
+* Macro-AUC
+
+## Functional Requirements
+
+### 1. Public API
+
+Expose one main entry point and two internal mode-specific evaluators.
+
+Recommended API:
+
+```python
+evaluate_predictions(
+    predictions: list[PredictionRecord],
+    targets: list[SilverRecord],
+    mode: str,
+    ontology: list[OntologyCode] | None = None,
+    ks: tuple[int, ...] = (1, 3, 5),
+) -> dict[str, float]
+```
 
 Rules:
 
-* `scores` must be probabilities in `[0, 1]`
-* `targets` must be binary values `{0, 1}`
-* `num_labels` must be passed explicitly
-* `label_granularity` must be either `"chapter"` or `"code_3char"`
+* `mode` must be one of: `"code_3char_multilabel"`, `"chapter_classification"`
+* `ontology` is required only when chapter evaluation needs projection from 3-character codes
+* `ks` applies only to 3-character multi-label mode
 
-This task should not implement record-to-tensor conversion. That belongs to later training/eval wiring.
+### 2. Record alignment
 
-## Output Contract
+Align records strictly by `doc_id`.
 
-`compute()` must return a flat JSON-serializable dictionary:
+Requirements:
 
-* keys are stable metric names
-* values are Python `float`
-* metric names must include granularity prefix
+* one target per `doc_id`
+* one prediction per `doc_id`
+* prediction/target doc sets must match exactly
+* raise `ValueError` on duplicates or mismatched doc sets
 
-Example key format:
+### 3. Validation rules
 
-* `chapter/micro_f1`
-* `chapter/macro_f1`
-* `chapter/macro_auroc`
-* `code_3char/micro_precision`
+Validate before metric computation.
 
-## Suggested File Layout
+Rules:
 
-* `src/mnc/eval/__init__.py`
-* `src/mnc/eval/metrics.py`
-* `tests/eval/test_metrics.py`
+* `PredictionRecord.predicted_codes` must be a subset of `PredictionRecord.scores.keys()`
+* all labels in `SilverRecord.silver_labels` must be non-empty strings
+* `scores` values must be finite floats
+* for chapter projection, every used `code_3char` must resolve to a non-null `chapter_id`
+* chapter classification mode must resolve to exactly one target chapter per document
+* chapter classification mode must resolve to exactly one predicted chapter per document when using discrete predictions
+* raise `ValueError` for invalid inputs; do not silently drop labels
 
-## Public API
+### 4. Label vocabulary construction
 
-Implement one small config object and one evaluator class.
+Build a deterministic label index.
 
-Config:
+Rules:
 
-* `EvalMetricConfig`
-* fields:
-  * `label_granularity: Literal["chapter", "code_3char"]`
-  * `num_labels: int`
-  * `threshold: float`
+* 3-character mode vocabulary = sorted union of:
+  * all target `silver_labels`
+  * all prediction `scores.keys()`
+  * all prediction `predicted_codes`
+* chapter mode vocabulary = sorted union of resolved chapter labels
+* if `ontology` is supplied, use it only for code-to-chapter projection, not for expanding unseen labels
 
-Evaluator:
+### 5. Tensor conversion
 
-* `MultilabelEvaluator`
-* methods:
-  * `update(scores: torch.Tensor, targets: torch.Tensor) -> None`
-  * `compute() -> dict[str, float]`
-  * `reset() -> None`
+Convert aligned records into tensors.
 
-Helper:
+For 3-character multi-label:
 
-* `build_metrics(config: EvalMetricConfig) -> torchmetrics.MetricCollection`
+* `y_true`: shape `[N, C]`, binary multi-hot from `SilverRecord.silver_labels`
+* `y_pred`: shape `[N, C]`, binary multi-hot from `PredictionRecord.predicted_codes`
+* `y_score`: shape `[N, C]`, float scores from `PredictionRecord.scores`, default missing labels to `0.0`
 
-## Metric Definitions
+For chapter classification:
 
-Use torchmetrics classification metrics.
+* `y_true_class`: shape `[N]`, integer class ids
+* `y_pred_class`: shape `[N]`, integer class ids
+* `y_score_class`: shape `[N, K]`, class scores
 
-Required mapping:
+### 6. Chapter projection logic
 
-* `micro_f1` -> multilabel F1 with `average="micro"`
-* `macro_f1` -> multilabel F1 with `average="macro"`
-* `micro_precision` -> multilabel precision with `average="micro"`
-* `micro_recall` -> multilabel recall with `average="micro"`
-* `macro_auroc` -> multilabel AUROC with `average="macro"`
+Support evaluation from 3-character outputs when chapter labels are not directly predicted.
 
-Use the same `threshold` for thresholded metrics.
+Projection rules:
 
-Do not add ranking metrics, retrieval metrics, calibration metrics, or custom metrics in this task.
+* map each `code_3char` to `chapter_id` via `OntologyCode`
+* target chapter set = projected chapters from `SilverRecord.silver_labels`
+* prediction chapter scores = aggregate code scores per chapter using `max`
+* predicted chapter label = `argmax` of chapter scores
+* if a target document maps to more than one distinct chapter, raise `ValueError`
+* if a prediction cannot be projected because of missing ontology mapping, raise `ValueError`
 
-## Validation Rules
+This keeps chapter mode single-label and compatible with Accuracy, Macro F1, and Macro-AUC.
 
-Fail fast with typed errors.
+## Metric Requirements
 
-Required checks:
+## Torchmetrics usage
 
-* `scores.ndim == 2`
-* `targets.ndim == 2`
-* `scores.shape == targets.shape`
-* `scores.shape[1] == config.num_labels`
-* `scores` is floating point
-* `targets` is boolean or integer
-* `targets` contains only `0/1`
-* `threshold` is strictly between `0.0` and `1.0`
+Use `torchmetrics` for all final metric computations.
 
-Raise `ValueError` for invalid shapes, invalid ranges, or invalid label values.
+Implementation note:
 
-## AUROC Edge Case Handling
+* use `get-api-docs` skill to fetch torchmetrics's documentation
 
-`macro_auroc` may be undefined if some labels have only one class in the accumulated targets.
+### 1. 3-character multi-label metrics
 
-Required behavior:
+Use:
 
-* evaluator must not crash the whole evaluation step
-* if AUROC cannot be computed, return `float("nan")` for `macro_auroc`
-* keep other metrics available
+* `MultilabelF1Score` for Micro F1 and Macro F1
+* `MultilabelAUROC` for Macro-AUC
 
-Catch only concrete exception types raised during AUROC compute.
+For P\@k and R\@k:
 
-## Non-Goals
+* derive a top-k binary prediction mask from `y_score`
+* compute per-sample precision and recall at each `k`
+* aggregate with a torchmetrics reducer such as `MeanMetric`
 
-This module must not:
+Definitions:
 
-* read or write files
-* depend on a trainer framework
-* mutate schema classes
-* infer chapters from codes
-* perform threshold search
-* compute per-label reports
+* `P@k = mean_i( hits_i / k )`
+* `R@k = mean_i( hits_i / max(1, positives_i) )`
 
-## Implementation Notes
+Tie handling:
 
-* Keep the evaluator stateful at epoch scope.
-* Use torchmetrics metric objects directly.
-* Prefix every output metric name with `label_granularity`.
-* Convert scalar tensors to Python floats before returning results.
-* Keep the implementation CPU/GPU agnostic.
-* Keep docstrings minimal and Google-style.
-* Use modern Python typing only.
+* rely on `torch.topk`
+* deterministic behavior is sufficient; no custom tie-break policy required
 
-## Pytest Requirements
+### 2. Chapter classification metrics
 
-Write unit tests with `pytest`.
+Use:
+
+* `MulticlassAccuracy`
+* `MulticlassF1Score` with `average="macro"`
+* `MulticlassAUROC` with `average="macro"`
+
+Requirements:
+
+* class count must match resolved chapter vocabulary size
+* `y_score_class` must be dense over all classes
+
+## File Layout
+
+Recommended files:
+
+* `src/mnc/metrics/__init__.py`
+* `src/mnc/metrics/evaluator.py`
+* `src/mnc/metrics/adapters.py`
+* `tests/metrics/test_evaluator.py`
+
+Responsibilities:
+
+* `adapters.py`: validation, alignment, vocabulary build, tensor conversion, chapter projection
+* `evaluator.py`: mode dispatch and torchmetrics computation
+
+## Implementation Constraints
+
+* Do not modify schema definitions under `src/mnc/schemas/`
+* Do not introduce new persisted artifact schemas
+* Keep functions pure and stateless
+* Keep error messages explicit and actionable
+* Prefer small helpers over one large evaluator function
+
+## Testing Requirements
+
+Use `pytest`.
 
 Minimum required tests:
 
-* perfect predictions return `1.0` for `micro_f1`, `macro_f1`, `micro_precision`, and `micro_recall`
-* perfect predictions return `1.0` for `macro_auroc` on a valid non-degenerate target set
-* multi-batch accumulation matches single-pass evaluation
-* `reset()` clears state correctly
-* invalid score shape raises `ValueError`
-* invalid target shape raises `ValueError`
-* mismatched `num_labels` raises `ValueError`
-* non-binary targets raise `ValueError`
-* scores outside `[0, 1]` raise `ValueError`
-* output keys are prefixed by `label_granularity`
-* `compute()` returns JSON-serializable Python floats
-* AUROC failure path returns `NaN` instead of crashing
+* perfect 3-character multi-label case returns `1.0` for Micro F1, Macro F1, Macro-AUC, and valid P\@k / R\@k
+* partial 3-character multi-label case verifies P\@k and R\@k on a tiny hand-checked example
+* direct chapter classification case verifies Accuracy, Macro F1, Macro-AUC
+* code-to-chapter projection case verifies ontology-based aggregation works
+* invalid input case raises `ValueError` for one of:
+  * mismatched `doc_id`
+  * duplicate `doc_id`
+  * predicted label missing from `scores`
+  * multi-chapter target in chapter mode
 
-Test constraints:
+Test complexity should stay low:
 
-* no network access
-* no external datasets
-* use tiny synthetic tensors only
-* deterministic expected values
+* use tiny synthetic fixtures
+* avoid heavy parametrization
+* no integration or performance tests
 
-## Definition of Done
+## Acceptance Criteria
 
-TE-2 is done when:
+TE-2 is complete when:
 
-* `src/mnc/eval/metrics.py` exists and exposes the evaluator API
-* all required metrics are implemented with torchmetrics
-* validation is strict and typed
-* pytest unit tests cover normal and failure paths
-* `uv run pytest tests/eval/test_metrics.py -v` passes
-* no schema files under `src/mnc/schemas/` are changed
+* evaluator supports both required modes
+* evaluator accepts only `PredictionRecord`, `SilverRecord`, and optional `OntologyCode`
+* all listed metrics are implemented
+* chapter projection from 3-character codes is supported
+* invalid schema usage fails fast with clear errors
+* `pytest` unit tests pass
 
-## Handoff Notes
+## Non-Goals for This Task
 
-This task prepares evaluation only.
+Do not add:
 
-Later tasks may build on it to evaluate:
+* threshold tuning
+* sample weighting
+* per-label reports
+* confusion matrices
+* serialization/export
+* dashboard/report generation
+* distributed metric accumulation across processes
 
-* silver-label training runs
-* chapter prediction baselines
-* `code_3char` prediction runs
-* TransICD-style models with the SEA-LION ModernBERT backbone
+## Suggested Definition of Done
+
+* code merged under `feature/te-2-metrics`
+* metrics module is importable by TE-1 and baseline tasks
+* tests pass locally with `pytest`
+* function docstrings clearly state expected schema inputs and failure conditions
