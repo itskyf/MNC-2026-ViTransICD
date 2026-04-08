@@ -8,6 +8,5 @@ run = "uv run -m mnc.ontology.crawler data/bronze/kcb_vn_icd10/"
 run = "uv run -m mnc.ontology.reporter data/bronze/kcb_vn_icd10/"
 
 [tools]
-fnox = "latest"
 prek = "latest"
 uv = "latest"
