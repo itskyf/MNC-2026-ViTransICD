@@ -112,8 +112,8 @@
 
 ## Suggested deliverables
 
-* `src/mnc/data/ingest/de2_snapshot.py`
-* `src/mnc/schemas/bronze.py` only if needed
-* `tests/data/ingest/test_de2_snapshot_vietmed_sum.py`
-* `tests/data/ingest/test_de2_snapshot_vihealthqa.py`
-* `tests/data/ingest/test_de2_snapshot_manifest.py`
+* `src/mnc/datasets/de2_snapshot.py`
+* `src/mnc/schemas/bronze.py` (nếu cần)
+* `tests/datasets/test_de2_snapshot_vietmed_sum.py`
+* `tests/datasets/test_de2_snapshot_vihealthqa.py`
+* `tests/datasets/test_de2_snapshot_manifest.py`
