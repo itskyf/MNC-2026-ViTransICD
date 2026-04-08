@@ -22,7 +22,7 @@ from tenacity import (
     wait_random_exponential,
 )
 
-from src.mnc.ontology._types import (
+from mnc.ontology._types import (
     ErrorEntry,
     JsonValue,
     ManifestEntry,

@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
 
-from src.mnc.ontology._types import (
+from mnc.ontology._types import (
     DiscoverySummary,
     ErrorEntry,
     JsonValue,

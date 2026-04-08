@@ -1,17 +1,14 @@
 """Unit tests for src/mnc/ontology/reporter.py."""
 
-# ruff: noqa: D101, D102, D103, PLR2004, S324, SLF001, TC001, TC003
-
 from __future__ import annotations
 
 import hashlib
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
-from src.mnc.ontology._types import JsonValue
-from src.mnc.ontology.reporter import ICDReporter
+from mnc.ontology.reporter import ICDReporter
 
 from .conftest import (
     SAMPLE_CHAPTER,
@@ -20,6 +17,12 @@ from .conftest import (
     write_errors,
     write_manifest,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from mnc.ontology._types import JsonValue
+
 
 # -----------------------------------------------------------------------
 # Fixtures
@@ -40,7 +43,7 @@ def _write_raw(data_dir: Path, envelope: dict[str, JsonValue]) -> None:
     nid = str(envelope["id"])
     content = json.dumps(envelope["data"], sort_keys=True)
 
-    h = hashlib.md5(content.encode()).hexdigest()[:12]
+    h = hashlib.sha256(content.encode()).hexdigest()[:12]
     raw_dir = data_dir / "raw" / f"endpoint={ek}" / f"lang={lang}" / f"id={nid}"
     raw_dir.mkdir(parents=True, exist_ok=True)
     (raw_dir / f"{h}.json").write_text(json.dumps(envelope, ensure_ascii=False))
