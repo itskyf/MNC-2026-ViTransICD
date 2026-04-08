@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+import polars as pl
 import pytest
 
 from mnc.ontology._types import (
@@ -17,7 +19,7 @@ from mnc.ontology._types import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-# -- Sample API responses (matching real KCB API format) --------------------
+# -- Ontology fixtures (matching real KCB API format) -----------------------
 
 SAMPLE_ROOT_VI = {
     "status": "success",
@@ -126,7 +128,7 @@ SAMPLE_DISEASE = {
 }
 
 
-# -- Helpers ---------------------------------------------------------------
+# -- Ontology helpers -------------------------------------------------------
 
 
 def make_raw_envelope(
@@ -177,3 +179,96 @@ def tmp_data(tmp_path: Path) -> Path:
     d = tmp_path / "kcb_data"
     d.mkdir()
     return d
+
+
+# -- Dataset ingestion fixtures ---------------------------------------------
+
+
+FIXTURE_TS = datetime(2025, 1, 1, tzinfo=UTC)
+
+
+@pytest.fixture
+def vietmed_dir(tmp_path: Path) -> Path:
+    """Create a tiny VietMed-Sum fixture directory with 3 Parquet files."""
+    data_dir = tmp_path / "vietmed_raw"
+    data_dir.mkdir()
+
+    valid = pl.DataFrame(
+        {
+            "transcript": ["bệnh nhân sốt cao ba ngày", "ho khan kéo dài"],
+            "summary": [
+                "bệnh nhân bị sốt cao ba ngày liên tục",
+                "ho kéo dài cần khám",
+            ],
+        },
+    )
+    valid.write_parquet(data_dir / "train_whole.parquet")
+
+    dev = pl.DataFrame(
+        {
+            "transcript": ["đau đầu nhẹ", ""],
+            "summary": ["khám đau đầu", "bỏ qua"],
+        },
+    )
+    dev.write_parquet(data_dir / "dev_whole.parquet")
+
+    test = pl.DataFrame(
+        {
+            "transcript": ["mệt mỏi toàn thân"],
+            "summary": ["cần nghỉ ngơi"],
+        },
+    )
+    test.write_parquet(data_dir / "test_whole.parquet")
+
+    return data_dir
+
+
+@pytest.fixture
+def vihealthqa_dir(tmp_path: Path) -> Path:
+    """Create a tiny ViHealthQA fixture directory with 3 CSV files."""
+    data_dir = tmp_path / "vihealthqa_raw"
+    data_dir.mkdir()
+
+    train = pl.DataFrame(
+        {
+            "id": [1, 2],
+            "question": [
+                "Tiêm vaccine có an toàn không?",
+                "Ăn kiêng thế nào?",
+            ],
+            "answer": [
+                "Có, vaccine đã qua kiểm định.",
+                "Nên ăn nhiều rau xanh.",
+            ],
+            "link": [
+                "https://example.com/1",
+                "https://example.com/2",
+            ],
+        },
+    )
+    train.write_csv(data_dir / "train.csv")
+
+    val = pl.DataFrame(
+        {
+            "id": [1],
+            "question": ["Uống thuốc khi đói được không?"],
+            "answer": ["Nên ăn no trước khi uống."],
+            "link": ["https://example.com/3"],
+        },
+    )
+    val.write_csv(data_dir / "val.csv")
+
+    test = pl.DataFrame(
+        {
+            "id": [1, 2],
+            "question": ["Cơn đau ngực là gì?", "Câu hỏi lạc đề"],
+            "answer": ["Đau vùng ngực cần cấp cứu.", ""],
+            "link": [
+                "https://example.com/4",
+                "https://example.com/5",
+            ],
+        },
+    )
+    test.write_csv(data_dir / "test.csv")
+
+    return data_dir
