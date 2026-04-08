@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from src.mnc.ontology._types import (
+from mnc.ontology._types import (
     ErrorEntry,
     JsonValue,
     ManifestEntry,

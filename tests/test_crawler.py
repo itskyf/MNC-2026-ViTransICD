@@ -3,19 +3,17 @@
 All HTTP traffic is mocked via *respx* so tests run fully offline.
 """
 
-# ruff: noqa: D101, D102, PLC0415, PLR2004, SLF001, TC003
-
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import httpx
 import pytest
 import pytest_asyncio
 import respx
 
-from src.mnc.ontology.crawler import BASE_URL, ICDCrawler
+from mnc.ontology.crawler import BASE_URL, ICDCrawler, main
 
 from .conftest import (
     SAMPLE_CHAPTER,
@@ -27,6 +25,10 @@ from .conftest import (
     write_discovery,
     write_manifest,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
 
 # -----------------------------------------------------------------------
 # Fixtures
@@ -416,6 +418,4 @@ class TestCrawl:
 
 class TestCLI:
     def test_main_importable(self) -> None:
-        from src.mnc.ontology.crawler import main
-
         assert callable(main)
