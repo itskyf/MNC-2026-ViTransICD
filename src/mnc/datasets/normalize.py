@@ -13,7 +13,7 @@ import argparse
 import json
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 import underthesea
 from pydantic import ValidationError
@@ -181,7 +181,7 @@ def normalize_dataset(
     ment_counts: dict[str, int] = {}
     failed_counts: dict[str, int] = {}
     input_splits: list[str] = []
-    all_errors: list[dict[str, str | int]] = []
+    all_errors: list[_ParseError] = []
 
     split_files = sorted(
         f for f in input_dir.glob("*.jsonl") if f.name not in _SKIP_FILES
@@ -220,6 +220,12 @@ def normalize_dataset(
     return doc_m, sent_m, ment_m
 
 
+class _ParseError(TypedDict):
+    line: int
+    split: str
+    error: str
+
+
 def _process_split(
     split_file: Path,
 ) -> tuple[
@@ -227,14 +233,14 @@ def _process_split(
     list[SentenceSpanRecord],
     list[MentionRecord],
     int,
-    list[dict[str, object]],
+    list[_ParseError],
 ]:
     """Process one split file, returning results and error info."""
     docs: list[DocumentRecord] = []
     all_sents: list[SentenceSpanRecord] = []
     all_ments: list[MentionRecord] = []
     failed = 0
-    errors: list[dict[str, object]] = []
+    errors: list[_ParseError] = []
 
     with split_file.open("r", encoding="utf-8") as f:
         for line_num, line in enumerate(f, start=1):
