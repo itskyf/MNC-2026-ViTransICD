@@ -14,6 +14,7 @@ import json
 import logging
 import re
 from pathlib import Path
+from typing import TypedDict
 
 from pydantic import ValidationError
 
@@ -190,12 +191,18 @@ def _load_raw_text_map(doc_dir: Path) -> dict[str, str]:
     return raw_text_map
 
 
+class _ParseError(TypedDict):
+    line: int
+    split: str
+    error: str
+
+
 def _read_mentions_by_doc(
     split_file: Path,
-) -> tuple[dict[str, list[MentionRecord]], list[dict[str, object]], int]:
+) -> tuple[dict[str, list[MentionRecord]], list[_ParseError], int]:
     """Read mentions grouped by doc_id, collecting errors."""
     mentions_by_doc: dict[str, list[MentionRecord]] = {}
-    errors: list[dict[str, object]] = []
+    errors: list[_ParseError] = []
     failed = 0
 
     with split_file.open("r", encoding="utf-8") as f:
@@ -236,7 +243,7 @@ def abbrev_dataset(
     record_counts: dict[str, int] = {}
     failed_counts: dict[str, int] = {}
     input_splits: list[str] = []
-    all_errors: list[dict[str, str | int]] = []
+    all_errors: list[_ParseError] = []
 
     split_files = sorted(
         f for f in mention_dir.glob("*.jsonl") if f.name != "errors.jsonl"
