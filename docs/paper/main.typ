@@ -71,19 +71,19 @@
 
   = Introduction
 
-  Automatic assignment of International Classification of Diseases (ICD) codes is an important structured prediction task in clinical natural language processing. In healthcare systems, ICD codes support disease surveillance, hospital reporting, reimbursement, epidemiological analysis, and many downstream data applications [1]–[3]. Because manual coding is time-consuming, costly, and often inconsistent, automatic ICD coding has long been studied as a way to reduce coder workload and improve standardization [3], [4].
+  Automatic assignment of International Classification of Diseases (ICD) codes is an important structured prediction task in clinical natural language processing. In healthcare systems, ICD codes support disease surveillance, hospital reporting, reimbursement, epidemiological analysis, and many downstream data applications @mimic_iii @mimic_iv @medical_coding_review. Because manual coding is time-consuming, costly, and often inconsistent, automatic ICD coding has long been studied as a way to reduce coder workload and improve standardization @medical_coding_review @caml.
 
-  From a machine learning perspective, ICD coding is difficult for several reasons. First, the task is naturally multi-label because a single document may correspond to multiple diagnoses. Second, the label space is large and strongly long-tailed, so a small number of frequent codes dominate training while many important labels remain rare [3], [10]–[13]. Third, clinical notes are often long, noisy, and heterogeneous, with abbreviations, informal phrasing, repeated evidence, and irrelevant spans [4], [10], [17]. Fourth, coding systems used in practice require some level of interpretability, since a useful system should indicate why a code was suggested rather than only output a label set [4], [8], [9], [11].
+  From a machine learning perspective, ICD coding is difficult for several reasons. First, the task is naturally multi-label because a single document may correspond to multiple diagnoses. Second, the label space is large and strongly long-tailed, so a small number of frequent codes dominate training while many important labels remain rare @medical_coding_review @plm_icd @transicd @mimic_iv_icd @ldam. Third, clinical notes are often long, noisy, and heterogeneous, with abbreviations, informal phrasing, repeated evidence, and irrelevant spans @caml @plm_icd @longformer. Fourth, coding systems used in practice require some level of interpretability, since a useful system should indicate why a code was suggested rather than only output a label set @caml @hlan @hilat @transicd.
 
-  Over the last several years, ICD coding research has moved from feature-engineered methods to neural architectures that learn label-specific evidence from text. CAML showed that label-wise attention can improve both prediction quality and interpretability [4]. MultiResCNN, LAAT, HyperCore, HLAN, and HiLAT further developed label-aware and hierarchical approaches for long documents and large label spaces [5]–[9]. More recently, pretrained language model approaches have shown strong potential, but they must still address long input sequences, large label spaces, and domain mismatch between general pretraining corpora and clinical text [10]. In this context, TransICD is especially relevant because it combines a Transformer encoder with code-wise attention and an imbalance-aware objective [11], [13].
+  Over the last several years, ICD coding research has moved from feature-engineered methods to neural architectures that learn label-specific evidence from text. CAML showed that label-wise attention can improve both prediction quality and interpretability @caml. MultiResCNN, LAAT, HyperCore, HLAN, and HiLAT further developed label-aware and hierarchical approaches for long documents and large label spaces @multirescnn @laat @hypercore @hlan @hilat. More recently, pretrained language model approaches have shown strong potential, but they must still address long input sequences, large label spaces, and domain mismatch between general pretraining corpora and clinical text @plm_icd. In this context, TransICD is especially relevant because it combines a Transformer encoder with code-wise attention and an imbalance-aware objective @transicd @ldam.
 
-  The benchmark landscape has also evolved. Earlier work relied mainly on MIMIC-III with ICD-9 labels [1], while more recent work has shifted toward MIMIC-IV and ICD-10, which better reflect current coding practice but also introduce a larger and sparser label space [2], [12]. Recent studies increasingly incorporate label descriptions, code synonyms, calibration, and stronger explanation mechanisms [18]–[20]. This trend suggests that future ICD systems should combine strong document modeling with richer label semantics and better evidence localization.
+  The benchmark landscape has also evolved. Earlier work relied mainly on MIMIC-III with ICD-9 labels @mimic_iii, while more recent work has shifted toward MIMIC-IV and ICD-10, which better reflect current coding practice but also introduce a larger and sparser label space @mimic_iv @mimic_iv_icd. Recent studies increasingly incorporate label descriptions, code synonyms, calibration, and stronger explanation mechanisms @msmn @diverse_label_embeddings @clinical_entities_icd. This trend suggests that future ICD systems should combine strong document modeling with richer label semantics and better evidence localization.
 
-  The Vietnamese setting differs substantially from the English high-resource setting in which most ICD coding models have been developed. To our knowledge, there is no widely used public Vietnamese dataset of discharge summaries or electronic medical records paired with gold ICD-10 labels at a scale suitable for fully supervised ICD coding. Existing Vietnamese medical NLP resources are valuable, but they are distributed across tasks such as named entity recognition and medical question answering rather than note-level ICD coding [25], [26].
+  The Vietnamese setting differs substantially from the English high-resource setting in which most ICD coding models have been developed. To our knowledge, there is no widely used public Vietnamese dataset of discharge summaries or electronic medical records paired with gold ICD-10 labels at a scale suitable for fully supervised ICD coding. Existing Vietnamese medical NLP resources are valuable, but they are distributed across tasks such as named entity recognition and medical question answering rather than note-level ICD coding @vietmed_ner @vimedaqa.
 
   This gap has two implications. First, it prevents a straightforward transfer of the standard English evaluation setup to Vietnamese. Second, it raises a methodological question about what can be claimed responsibly when note-level gold labels are not available. In this situation, a realistic study should not imitate the reporting style of a fully supervised benchmark paper. Instead, it should make the data constraints explicit, define the scope conservatively, and design the evaluation so that the reader can distinguish what has been directly observed from what remains provisional.
 
-  This paper therefore studies Vietnamese ICD-10 coding under a low-resource public-data setting. Instead of assuming access to private hospital data, we combine public Vietnamese medical text with an ICD-10 ontology derived from official Vietnamese coding resources [27]. Because expert note-level ICD labels are not publicly available, we construct a silver-labeled dataset through weak supervision and define the task at two practical granularities: chapter prediction and 3-character ICD-10 code prediction. The goal is not to claim hospital-ready performance, but to establish a reproducible and credible foundation for future work in Vietnamese ICD coding.
+  This paper therefore studies Vietnamese ICD-10 coding under a low-resource public-data setting. Instead of assuming access to private hospital data, we combine public Vietnamese medical text with an ICD-10 ontology derived from official Vietnamese coding resources @vietnam_icd10_decision. Because expert note-level ICD labels are not publicly available, we construct a silver-labeled dataset through weak supervision and define the task at two practical granularities: chapter prediction and 3-character ICD-10 code prediction. The goal is not to claim hospital-ready performance, but to establish a reproducible and credible foundation for future work in Vietnamese ICD coding.
 
   The paper makes three contributions. First, it defines a transparent data construction pipeline for creating a silver-labeled Vietnamese ICD benchmark from public resources. Second, it adapts a TransICD-style label-aware architecture to a Vietnamese setting in which both the text data and the supervision signal are substantially weaker than in English benchmark studies. Third, it proposes an evaluation framework that combines standard quantitative metrics with qualitative evidence inspection so that model behavior can be interpreted in light of weak supervision noise rather than treated as a black-box outcome.
 
@@ -93,21 +93,21 @@
 
   == Automatic ICD Coding
 
-  Automatic ICD coding has a long history in clinical NLP. Early systems relied on rules, dictionaries, sparse lexical features, and traditional classifiers, but these approaches struggled with long documents and large label spaces [3]. The shift toward deep learning enabled stronger document encoders and more flexible multi-label prediction, especially on MIMIC-style datasets [4], [5].
+  Automatic ICD coding has a long history in clinical NLP. Early systems relied on rules, dictionaries, sparse lexical features, and traditional classifiers, but these approaches struggled with long documents and large label spaces @medical_coding_review. The shift toward deep learning enabled stronger document encoders and more flexible multi-label prediction, especially on MIMIC-style datasets @caml @multirescnn.
 
-  A major turning point came with label-aware models. CAML introduced a convolutional architecture with per-label attention, showing that a separate document representation for each code improves both prediction quality and interpretability [4]. MultiResCNN further improved text representation with residual multi-filter convolution [5]. LAAT proposed a label-attention mechanism that better handles variable evidence span lengths and infrequent codes [6], while HyperCore explicitly modeled code hierarchy and co-occurrence [7]. HLAN and HiLAT emphasized hierarchical attention and explainability, showing that it is useful to localize label-specific evidence rather than relying only on pooled document embeddings [8], [9].
+  A major turning point came with label-aware models. CAML introduced a convolutional architecture with per-label attention, showing that a separate document representation for each code improves both prediction quality and interpretability @caml. MultiResCNN further improved text representation with residual multi-filter convolution @multirescnn. LAAT proposed a label-attention mechanism that better handles variable evidence span lengths and infrequent codes @laat, while HyperCore explicitly modeled code hierarchy and co-occurrence @hypercore. HLAN and HiLAT emphasized hierarchical attention and explainability, showing that it is useful to localize label-specific evidence rather than relying only on pooled document embeddings @hlan @hilat.
 
-  The introduction of pretrained language models created another major shift. PLM-ICD showed that fine-tuning pretrained encoders is not enough unless the model also handles long sequences, large label spaces, and domain mismatch [10]. TransICD addressed these issues through a Transformer backbone followed by code-wise attention and label-distribution-aware optimization, making it especially relevant to imbalanced and explanation-sensitive settings [11], [13]. More recent work also highlights the importance of label semantics, synonyms, calibration, and entity-centered compression [18]–[20].
+  The introduction of pretrained language models created another major shift. PLM-ICD showed that fine-tuning pretrained encoders is not enough unless the model also handles long sequences, large label spaces, and domain mismatch @plm_icd. TransICD addressed these issues through a Transformer backbone followed by code-wise attention and label-distribution-aware optimization, making it especially relevant to imbalanced and explanation-sensitive settings @transicd @ldam. More recent work also highlights the importance of label semantics, synonyms, calibration, and entity-centered compression @msmn @diverse_label_embeddings @clinical_entities_icd.
 
   A recurring pattern across this literature is that strong ICD coding systems rarely depend on document encoding alone. As the field has matured, the best-performing methods increasingly combine text modeling with some form of label structure, whether through hierarchy, label descriptions, synonym expansion, or evidence localization. This is particularly relevant to the present work because the Vietnamese setting is not only low-resource but also weakly supervised. Under those conditions, architectures that can expose the relationship between a predicted code and the supporting text are more useful than models that only optimize aggregate performance.
 
-  Another point that emerges from prior work is that interpretability in ICD coding is not merely an auxiliary feature. In many studies, explanation quality matters because the predicted codes correspond to clinical concepts that affect documentation, reporting, and downstream analysis [4], [8], [9], [11]. For this reason, code-wise attention remains attractive even when newer encoder backbones are available. It provides a practical compromise between expressive document modeling and evidence localization, which is especially valuable in settings where supervision is noisy and full trust in the predicted label set would be inappropriate.
+  Another point that emerges from prior work is that interpretability in ICD coding is not merely an auxiliary feature. In many studies, explanation quality matters because the predicted codes correspond to clinical concepts that affect documentation, reporting, and downstream analysis @caml @hlan @hilat @transicd. For this reason, code-wise attention remains attractive even when newer encoder backbones are available. It provides a practical compromise between expressive document modeling and evidence localization, which is especially valuable in settings where supervision is noisy and full trust in the predicted label set would be inappropriate.
 
   == Ontology-Guided and Weakly Supervised Medical NLP
 
-  Weak supervision is increasingly used when gold medical labels are expensive or unavailable. Snorkel formalized the idea of generating training labels programmatically from multiple imperfect supervision sources rather than relying only on manual annotation [21]. In biomedical and clinical NLP, ontologies are particularly useful because they already encode normalized concepts, synonyms, hierarchies, and textual definitions [22]. Ontology-driven supervision can therefore support mention normalization, entity linking, candidate generation, and document-level pseudo-label construction.
+  Weak supervision is increasingly used when gold medical labels are expensive or unavailable. Snorkel formalized the idea of generating training labels programmatically from multiple imperfect supervision sources rather than relying only on manual annotation @snorkel. In biomedical and clinical NLP, ontologies are particularly useful because they already encode normalized concepts, synonyms, hierarchies, and textual definitions @trove. Ontology-driven supervision can therefore support mention normalization, entity linking, candidate generation, and document-level pseudo-label construction.
 
-  This line of work is especially relevant for ICD coding in low-resource languages. Unlike ordinary topic classification, ICD coding is tied to a structured coding system whose hierarchy and descriptions can be used directly. Fries et al. showed that ontology-driven weak supervision can support clinical entity classification in electronic health records when multiple label sources are combined carefully [22]. In our setting, weak supervision is useful not only for creating labels but also for retaining evidence spans and confidence scores, which later support explanation analysis and confidence-aware training.
+  This line of work is especially relevant for ICD coding in low-resource languages. Unlike ordinary topic classification, ICD coding is tied to a structured coding system whose hierarchy and descriptions can be used directly. Fries et al. showed that ontology-driven weak supervision can support clinical entity classification in electronic health records when multiple label sources are combined carefully @trove. In our setting, weak supervision is useful not only for creating labels but also for retaining evidence spans and confidence scores, which later support explanation analysis and confidence-aware training.
 
   In practice, ontology-guided weak supervision is attractive because it provides more than a shortcut for labeling. It also gives the researcher a structured way to reason about why a label was proposed. If a candidate code is supported by an exact lexical match, a hierarchy-consistent parent code, and a relevant ontology description, the resulting label is easier to audit than a pseudo-label produced by an opaque heuristic. This property is important for low-resource medical NLP, where the credibility of the supervision pipeline is often as important as the raw size of the constructed dataset.
 
@@ -115,7 +115,7 @@
 
   == Vietnamese Medical NLP Resources
 
-  Vietnamese medical NLP remains under-resourced compared with English. Still, recent work shows encouraging progress. VietMed-NER introduced a spoken named entity recognition dataset for the Vietnamese medical domain [25]. ViMedAQA provided a Vietnamese medical abstractive question-answering dataset and further expanded the public resource landscape [26]. Although these datasets are not ICD coding benchmarks, they contain disease, symptom, and treatment language that can support mention extraction, terminology discovery, and domain adaptation.
+  Vietnamese medical NLP remains under-resourced compared with English. Still, recent work shows encouraging progress. VietMed-NER introduced a spoken named entity recognition dataset for the Vietnamese medical domain @vietmed_ner. ViMedAQA provided a Vietnamese medical abstractive question-answering dataset and further expanded the public resource landscape @vimedaqa. Although these datasets are not ICD coding benchmarks, they contain disease, symptom, and treatment language that can support mention extraction, terminology discovery, and domain adaptation.
 
   The main gap is that public Vietnamese medical NLP datasets generally do not provide document-level ICD-10 labels aligned with discharge-summary-style notes. This gap motivates the design choice in this paper. Rather than assuming such a benchmark already exists, we construct a reproducible silver-labeled benchmark from public Vietnamese medical text and official ICD-10 resources. This produces a more conservative and more credible research setting that better matches the actual availability of data.
 
@@ -139,7 +139,7 @@
 
   == Stage 1: ICD-10 Ontology Construction from Official Resources
 
-  We begin by constructing a Vietnamese ICD ontology from official resources issued under the Vietnamese Ministry of Health ICD-10 framework [27]. For each code entry, we extract and normalize the chapter identifier and title, the block or group identifier, the 3-character ICD code, optional 4-character descendants, the Vietnamese title or description, the English title or description when available, hierarchy links to parent and child codes, and any coding notes or instruction text.
+  We begin by constructing a Vietnamese ICD ontology from official resources issued under the Vietnamese Ministry of Health ICD-10 framework @vietnam_icd10_decision. For each code entry, we extract and normalize the chapter identifier and title, the block or group identifier, the 3-character ICD code, optional 4-character descendants, the Vietnamese title or description, the English title or description when available, hierarchy links to parent and child codes, and any coding notes or instruction text.
 
   The ontology is then flattened into a searchable table. Each row contains the code, its canonical Vietnamese name, an optional English name, chapter and block metadata, aliases, and a unified search text field. Retaining bilingual descriptions is important because Vietnamese medical writing often mixes Vietnamese and English terminology, especially for disease names, acronyms, and specialist expressions.
 
@@ -149,7 +149,7 @@
 
   == Stage 2: Public Vietnamese Medical Text Collection
 
-  Because a public Vietnamese discharge-summary-to-ICD dataset is not available, we build the document collection from heterogeneous public Vietnamese medical resources. These resources are selected because they contain medically meaningful language, diagnosis-related expressions, entity annotations that support normalization, or other properties that make them useful under public-data constraints. Examples include spoken medical NER corpora, medical QA corpora, public health text collections, and medical domain transcripts or summaries [25], [26].
+  Because a public Vietnamese discharge-summary-to-ICD dataset is not available, we build the document collection from heterogeneous public Vietnamese medical resources. These resources are selected because they contain medically meaningful language, diagnosis-related expressions, entity annotations that support normalization, or other properties that make them useful under public-data constraints. Examples include spoken medical NER corpora, medical QA corpora, public health text collections, and medical domain transcripts or summaries @vietmed_ner @vimedaqa.
 
   Each source is converted into a unified document schema with at least the fields `doc_id`, `source`, `raw_text`, `normalized_text`, `mention_list`, `candidate_codes`, `silver_labels`, `evidence_spans`, and `confidence_score`. The purpose of this schema is not only organizational convenience. It ensures that data from heterogeneous resources can be processed through the same downstream pipeline without losing traceability about source origin or supervision confidence.
 
@@ -169,7 +169,7 @@
 
   == Stage 4: Ontology-Based Candidate Generation
 
-  Each extracted mention is linked to a set of candidate ICD codes through multiple channels, including exact string matching against Vietnamese ontology titles and aliases, normalized matching after preprocessing, fuzzy string matching for spelling variation, BM25 retrieval over Vietnamese and English code descriptions [23], hierarchy-aware backoff from 4-character codes to 3-character codes and chapters, and optional encoder-based reranking using label-description embeddings.
+  Each extracted mention is linked to a set of candidate ICD codes through multiple channels, including exact string matching against Vietnamese ontology titles and aliases, normalized matching after preprocessing, fuzzy string matching for spelling variation, BM25 retrieval over Vietnamese and English code descriptions @bm25, hierarchy-aware backoff from 4-character codes to 3-character codes and chapters, and optional encoder-based reranking using label-description embeddings.
 
   Using multiple channels is important because exact matching is precise but brittle, while retrieval and fuzzy matching improve recall at the cost of more noise. Rather than selecting only one strategy, we retain per-channel scores and combine them later in a weak supervision layer. This design treats candidate generation as a recall-oriented stage and postpones the final decision until more evidence can be aggregated.
 
@@ -185,23 +185,23 @@
 
   == Model Adaptation: TransICD for Vietnamese
 
-  To preserve the main idea of TransICD while adapting it to Vietnamese, we use a Vietnamese-capable pretrained encoder such as SEA-LION-ModernBERT-300M [28] together with a TransICD-style code-wise attention head [11]. The encoder first produces contextualized token representations for the input document. For each ICD code, the model learns a separate query that highlights the tokens most relevant to that code. These code-specific weights are then used to build a code-specific document representation, and a sigmoid classifier estimates the probability of that label.
+  To preserve the main idea of TransICD while adapting it to Vietnamese, we use a Vietnamese-capable pretrained encoder such as SEA-LION-ModernBERT-300M @sea_lion together with a TransICD-style code-wise attention head @transicd. The encoder first produces contextualized token representations for the input document. For each ICD code, the model learns a separate query that highlights the tokens most relevant to that code. These code-specific weights are then used to build a code-specific document representation, and a sigmoid classifier estimates the probability of that label.
 
-  This design has two advantages. First, it allows the model to focus on different evidence spans for different codes. Second, it supports straightforward explanation through token-level evidence. To strengthen label semantics, the model can also use ICD descriptions, bilingual label text, and synonym expansions [18], [19].
+  This design has two advantages. First, it allows the model to focus on different evidence spans for different codes. Second, it supports straightforward explanation through token-level evidence. To strengthen label semantics, the model can also use ICD descriptions, bilingual label text, and synonym expansions @msmn @diverse_label_embeddings.
 
   The choice of a label-aware architecture is particularly appropriate here because the benchmark is constructed from weak supervision rather than from expert coding judgments. A pooled document representation can still work as a baseline, but it provides limited insight into which part of the text supports a given code. By contrast, code-wise attention creates a more direct link between the predicted label, the relevant tokens, and the ontology description, which is valuable both for interpretation and for error analysis.
 
   == Optimization and Training Strategy
 
-  The model is trained as a multi-label classifier. Because the label distribution is highly imbalanced, we consider two losses, namely weighted binary cross-entropy as a stable baseline and LDAM-style margin-aware loss as an imbalance-sensitive alternative [13]. In the silver-label setting, each training example can also be weighted by its weak-supervision confidence so that low-confidence silver labels contribute less to the overall loss.
+  The model is trained as a multi-label classifier. Because the label distribution is highly imbalanced, we consider two losses, namely weighted binary cross-entropy as a stable baseline and LDAM-style margin-aware loss as an imbalance-sensitive alternative @ldam. In the silver-label setting, each training example can also be weighted by its weak-supervision confidence so that low-confidence silver labels contribute less to the overall loss.
 
-  Long texts are handled through sliding-window chunking or long-context encoding, depending on the backbone. When a document exceeds the model's sequence limit, chunk-level representations are concatenated or pooled before code-wise attention is applied. This choice is motivated by the long-document nature of ICD coding [10], [17].
+  Long texts are handled through sliding-window chunking or long-context encoding, depending on the backbone. When a document exceeds the model's sequence limit, chunk-level representations are concatenated or pooled before code-wise attention is applied. This choice is motivated by the long-document nature of ICD coding @plm_icd @longformer.
 
   The training strategy is designed to remain practical under limited hardware conditions. Since the present work is intended as a reproducible public-data study, the computational setup should be realistic enough for follow-up work by other researchers. This is one reason to keep the optimization design straightforward. The contribution of the paper lies more in the coherence of the benchmark and modeling pipeline than in aggressive hyperparameter search.
 
   == Explainability Design
 
-  Explainability is a first-class design goal. The proposed system provides three complementary explanation signals: code-wise attention over token spans, gradient-based attribution such as Integrated Gradients for verification beyond raw attention [24], and label-description alignment that shows which ontology phrase most strongly supports a predicted code.
+  Explainability is a first-class design goal. The proposed system provides three complementary explanation signals: code-wise attention over token spans, gradient-based attribution such as Integrated Gradients for verification beyond raw attention @integrated_gradients, and label-description alignment that shows which ontology phrase most strongly supports a predicted code.
 
   At inference time, the model can return the predicted ICD label, a confidence score, the top evidence spans in Vietnamese text, the matched or aligned ICD description, and optional attribution heatmaps for tokens. This is especially valuable because the dataset itself is silver-labeled. Explanations make it easier to distinguish genuine model failure from weak-supervision noise.
 
@@ -229,13 +229,13 @@
 
   == Baselines
 
-  We compare the proposed model against three baseline categories. The first category includes symbolic and retrieval baselines such as exact match over ontology titles and aliases, normalized exact match, fuzzy string matching, and BM25 label retrieval over code descriptions [23]. The second category is a generic neural baseline consisting of the same encoder backbone with a pooled document representation and a linear sigmoid classifier. The third category is the proposed model, which uses the same encoder backbone together with TransICD-style code-wise attention and ontology-aware label semantics.
+  We compare the proposed model against three baseline categories. The first category includes symbolic and retrieval baselines such as exact match over ontology titles and aliases, normalized exact match, fuzzy string matching, and BM25 label retrieval over code descriptions @bm25. The second category is a generic neural baseline consisting of the same encoder backbone with a pooled document representation and a linear sigmoid classifier. The third category is the proposed model, which uses the same encoder backbone together with TransICD-style code-wise attention and ontology-aware label semantics.
 
   This comparison isolates the value of label-aware modeling relative to purely symbolic matching and ordinary document classification. It also helps answer a practical question: in a low-resource setting, does the additional complexity of a code-wise attention model provide meaningful value over simpler retrieval and classification baselines, or do lexical methods remain competitive enough to dominate the cost-benefit tradeoff?
 
   == Implementation Details
 
-  For the current protocol version, we adopt the following configuration. The encoder is SEA-LION-ModernBERT-300M [28], and the corresponding model tokenizer is used. The maximum sequence length is 4096 tokens when supported; otherwise the pipeline falls back to chunked processing with 128-token overlap. Optimization uses AdamW, with a learning rate of 0.00002 for the encoder and 0.0001 for task-specific heads. The batch size is 8 documents, with gradient accumulation if needed. Training runs for up to 10 epochs with early stopping, dropout is set to 0.1, weighted BCE is the default loss, and the LDAM variant is reported separately. Threshold selection is tuned on validation data. The hardware target is one or two modern GPUs with mixed precision.
+  For the current protocol version, we adopt the following configuration. The encoder is SEA-LION-ModernBERT-300M @sea_lion, and the corresponding model tokenizer is used. The maximum sequence length is 4096 tokens when supported; otherwise the pipeline falls back to chunked processing with 128-token overlap. Optimization uses AdamW, with a learning rate of 0.00002 for the encoder and 0.0001 for task-specific heads. The batch size is 8 documents, with gradient accumulation if needed. Training runs for up to 10 epochs with early stopping, dropout is set to 0.1, weighted BCE is the default loss, and the LDAM variant is reported separately. Threshold selection is tuned on validation data. The hardware target is one or two modern GPUs with mixed precision.
 
   These values are concrete enough to make the protocol reproducible while remaining flexible for later tuning. The goal is to provide a realistic implementation target rather than to imply that the current hyperparameters are already fully optimized. This distinction is important because the manuscript is intended to define a transparent experimental roadmap, and reproducibility is more valuable here than presenting an artificially narrow set of final hyperparameter choices.
 
@@ -333,154 +333,6 @@
 
   After the experiments are completed, the final manuscript should report the quantitative results, qualitative case studies, and error analysis in the structure already defined here. Even in its present form, the study offers a concrete roadmap for future Vietnamese ICD coding research that is more transparent and more realistic than simply assuming the existence of a standard supervised benchmark.
 
-  #let refitem(n, body) = grid(
-    columns: (2.2em, 1fr),
-    column-gutter: 0.6em,
-    row-gutter: 0.35em,
-    align(left + top)[[#n]], [#body],
-  )
-
-  = References
-
-  #refitem(
-    1,
-    [Johnson, A. E. W., Pollard, T. J., Shen, L., Lehman, L. H., Feng, M., Ghassemi, M., Moody, B., Szolovits, P., Anthony Celi, L., and Mark, R. G. (2016). MIMIC-III, a freely accessible critical care database. _Scientific Data, 3_, 160035.],
-  )
-
-  #refitem(
-    2,
-    [Johnson, A. E. W., Bulgarelli, L., Shen, L., et al. (2023). MIMIC-IV, a freely accessible electronic health record dataset. _Scientific Data, 10_(1).],
-  )
-
-  #refitem(
-    3,
-    [Ji, S., Li, X., Sun, W., Dong, H., Taalas, A., Zhang, Y., Wu, H., Pitkänen, E., and Marttinen, P. (2024). A unified review of deep learning for automated medical coding. _ACM Computing Surveys, 56_(12), Article 306.],
-  )
-
-  #refitem(
-    4,
-    [Mullenbach, J., Wiegreffe, S., Duke, J., Sun, J., and Eisenstein, J. (2018). Explainable prediction of medical codes from clinical text. In _Proceedings of NAACL-HLT 2018_ (pp. 1101--1111).],
-  )
-
-  #refitem(
-    5,
-    [Li, F., and Yu, H. (2020). ICD coding from clinical text using multi-filter residual convolutional neural network. In _Proceedings of the AAAI Conference on Artificial Intelligence_, 34(5), 8180--8187.],
-  )
-
-  #refitem(
-    6,
-    [Vu, T., Nguyen, D. Q., and Nguyen, A. (2020). A label attention model for ICD coding from clinical text. In _Proceedings of IJCAI 2020_ (pp. 3335--3341).],
-  )
-
-  #refitem(
-    7,
-    [Cao, P., Chen, Y., Liu, K., Zhao, J., Liu, S., and Chong, W. (2020). HyperCore: Hyperbolic and co-graph representation for automatic ICD coding. In _Proceedings of ACL 2020_ (pp. 3105--3114).],
-  )
-
-  #refitem(
-    8,
-    [Dong, H., Suarez-Paniagua, V., Whiteley, W., and Wu, H. (2021). Explainable automated coding of clinical notes using hierarchical label-wise attention networks and label embedding initialisation. _Journal of Biomedical Informatics, 116_, 103728.],
-  )
-
-  #refitem(
-    9,
-    [Liu, L., Perez-Concha, O., Nguyen, A., Bennett, V., and Jorm, L. (2022). Hierarchical label-wise attention transformer model for explainable ICD coding. _Journal of Biomedical Informatics, 133_, 104161.],
-  )
-
-  #refitem(
-    10,
-    [Huang, C.-W., Tsai, S.-C., and Chen, Y.-N. (2022). PLM-ICD: Automatic ICD coding with pretrained language models. In _Proceedings of the 4th Clinical Natural Language Processing Workshop_ (pp. 10--20).],
-  )
-
-  #refitem(
-    11,
-    [Biswas, B., Pham, T.-H., and Zhang, P. (2021). TransICD: Transformer based code-wise attention model for explainable ICD coding. In _Artificial Intelligence in Medicine: 19th International Conference, AIME 2021_ (LNCS 12721, pp. 469--478).],
-  )
-
-  #refitem(
-    12,
-    [Nguyen, T.-T., Schlegel, V., Kashyap, A., Winkler, S., Huang, S.-S., Liu, J.-J., and Lin, C.-J. (2023). MIMIC-IV-ICD: A new benchmark for extreme multilabel classification. _arXiv preprint_ arXiv:2304.13998.],
-  )
-
-  #refitem(
-    13,
-    [Cao, K., Wei, C., Gaidon, A., Arechiga, N., and Ma, T. (2019). Learning imbalanced datasets with label-distribution-aware margin loss. In _Advances in Neural Information Processing Systems 32_.],
-  )
-
-  #refitem(
-    14,
-    [Conneau, A., Khandelwal, K., Goyal, N., Chaudhary, V., Wenzek, G., Guzmán, F., Grave, E., Ott, M., Zettlemoyer, L., and Stoyanov, V. (2020). Unsupervised cross-lingual representation learning at scale. In _Proceedings of ACL 2020_ (pp. 8440--8451).],
-  )
-
-  #refitem(
-    15,
-    [Wang, W., Bao, H., Huang, S., Dong, L., and Wei, F. (2021). MiniLMv2: Multi-head self-attention relation distillation for compressing pretrained transformers. In _Findings of ACL-IJCNLP 2021_ (pp. 2140--2151).],
-  )
-
-  #refitem(
-    16,
-    [Reimers, N., and Gurevych, I. (2020). Making monolingual sentence embeddings multilingual using knowledge distillation. In _Proceedings of EMNLP 2020_ (pp. 4512--4525).],
-  )
-
-  #refitem(
-    17,
-    [Beltagy, I., Peters, M. E., and Cohan, A. (2020). Longformer: The long-document transformer. _arXiv preprint_ arXiv:2004.05150.],
-  )
-
-  #refitem(
-    18,
-    [Yuan, Z., Tan, C., and Huang, S. (2022). Code synonyms do matter: Multiple synonyms matching network for automatic ICD coding. In _Proceedings of ACL 2022, Volume 2: Short Papers_ (pp. 808--814).],
-  )
-
-  #refitem(
-    19,
-    [Gomes, G., Coutinho, I., and Martins, B. (2024). Accurate and well-calibrated ICD code assignment through attention over diverse label embeddings. In _Proceedings of EACL 2024_ (pp. 2302--2315).],
-  )
-
-  #refitem(
-    20,
-    [Douglas, J. C., Gan, Y., Hachey, B., and Kummerfeld, J. K. (2025). Less is more: Explainable and efficient ICD code prediction with clinical entities. In _Proceedings of ACL 2025_ (pp. 30835--30847).],
-  )
-
-  #refitem(
-    21,
-    [Ratner, A., Bach, S. H., Ehrenberg, H., Fries, J., Wu, S., and Ré, C. (2020). Snorkel: Rapid training data creation with weak supervision. _The VLDB Journal, 29_(2), 709--730.],
-  )
-
-  #refitem(
-    22,
-    [Fries, J. A., Steinberg, E., Khattar, S., Fleming, S. L., Posada, J., Callahan, A., Shah, N. H., and Ré, C. (2021). Ontology-driven weak supervision for clinical entity classification in electronic health records. _Nature Communications, 12_, 2017.],
-  )
-
-  #refitem(
-    23,
-    [Robertson, S., and Zaragoza, H. (2009). The probabilistic relevance framework: BM25 and beyond. _Foundations and Trends in Information Retrieval, 3_(4), 333--389.],
-  )
-
-  #refitem(
-    24,
-    [Sundararajan, M., Taly, A., and Yan, Q. (2017). Axiomatic attribution for deep networks. In _Proceedings of the 34th International Conference on Machine Learning_ (pp. 3319--3328).],
-  )
-
-  #refitem(
-    25,
-    [Le-Duc, K., Thulke, D., Tran, H.-P., Vo-Dang, L., Nguyen, K.-N., Hy, T.-S., and Schlüter, R. (2025). Medical spoken named entity recognition. In _Proceedings of NAACL 2025, Industry Track_ (pp. 724--783).],
-  )
-
-  #refitem(
-    26,
-    [Tran, M.-N., Nguyen, P.-V., Nguyen, L., and Dinh, D. (2024). ViMedAQA: A Vietnamese medical abstractive question-answering dataset and findings of large language model. In _Proceedings of ACL 2024, Student Research Workshop_ (pp. 252--260).],
-  )
-
-  #refitem(
-    27,
-    [Ministry of Health of Vietnam. (2020, October 23). _Decision No. 4400/QD-BYT on the promulgation of the “International Classification of Diseases and Causes of Death (ICD-10)” and the “Guidelines for ICD-10 Disease Coding” for use in medical examination and treatment establishments_ [English translation of Vietnamese title].],
-  )
-
-  #refitem(
-    28,
-    [AI Singapore. (2026). _SEA-LION-ModernBERT-300M-checkpoints_ [Model card]. Hugging Face.],
-  )
+  #bibliography("references.yaml")
 
 ]
-
