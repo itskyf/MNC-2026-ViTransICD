@@ -14,5 +14,8 @@ ignore = [
   "D",  # Test function names are descriptive enough; docstrings are redundant
 ]
 
+[lint.flake8-type-checking]
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
+
 [lint.pydocstyle]
 convention = "google"
