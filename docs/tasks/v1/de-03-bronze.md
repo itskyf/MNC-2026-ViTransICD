@@ -1,5 +1,5 @@
 
-# DE-3 Spec: Parse source formats to bronze documents
+# DE-03: Parse source formats to bronze documents
 
 ## Goal
 

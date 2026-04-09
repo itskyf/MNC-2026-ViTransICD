@@ -3,6 +3,7 @@
 ## Workflows
 
 - Never manually activate or manage virtual environments, use `uv run` for all commands.
+- Data structure: `data/{bronze,silver,gold}/<dataset_name>/<scope>/...`. You must not create any other layers (e.g., `data/raw/`).
 
 ## Python
 

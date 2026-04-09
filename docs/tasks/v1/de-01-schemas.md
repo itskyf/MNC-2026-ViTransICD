@@ -1,4 +1,4 @@
-# DE-1: Minimal Unified Schema for Agent Collaboration
+# DE-01: Minimal Unified Schema for Agent Collaboration
 
 ## Purpose
 
