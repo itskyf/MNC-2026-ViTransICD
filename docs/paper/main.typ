@@ -3,7 +3,7 @@
 #let artmed = (
   name: "Artificial Intelligence in Medicine",
   address: "www.elsevier.com/locate/artmed",
-  logo: image("artmed.jpg"),
+  logo: image("images/artmed.webp"),
   font: default-font,
   numcol: 2,
   foot-info: [The Authors. Published by Elsevier B.V.],
@@ -28,27 +28,27 @@
       name: [Ky Anh Pham],
       affiliations: ("a",),
       corresponding: true,
-      email: "25c150abc@student.hcmus.edu.vn",
+      email: "25c1503361@student.hcmus.edu.vn",
     ),
     (
       name: [The Viet Le],
       affiliations: ("a",),
-      email: "25c150abc@student.hcmus.edu.vn",
+      email: "25c1107243@student.hcmus.edu.vn",
     ),
     (
       name: [Thiet Thuat Nguyen],
       affiliations: ("a",),
-      email: "25c15025@student.hcmus.edu.vn",
+      email: "25c1502531@student.hcmus.edu.vn",
     ),
     (
       name: [Khac Anh Duc Nguyen],
       affiliations: ("a",),
-      email: "25c150abc@student.hcmus.edu.vn",
+      email: "25c1503720@student.hcmus.edu.vn",
     ),
   ),
 
   affiliations: (
-    "a": [University of Science, Viet Nam National University Ho Chi Minh City],
+    "a": [University of Science, VNUHCM, Ho Chi Minh City, Vietnam],
   ),
 
   abstract: "Automatic assignment of International Classification of Diseases (ICD) codes is an important task in clinical natural language processing, but it remains underexplored in Vietnamese because publicly available note-level datasets with expert ICD annotations are not available. This paper presents a low-resource framework for Vietnamese ICD-10 coding using only public resources. We construct a silver-labeled benchmark by combining public Vietnamese medical text with an ontology derived from official ICD-10 guidelines. The pipeline integrates mention extraction, terminology normalization, candidate generation, and weak supervision to produce document-level labels and supporting evidence. We then adapt a TransICD-style model with a Vietnamese-capable pretrained encoder and code-wise attention for label-aware prediction. The study is designed around two tasks: chapter-level prediction and 3-character ICD-10 prediction. Rather than claiming hospital-ready performance, the paper aims to provide a reproducible and realistic foundation for Vietnamese ICD coding research under public-data constraints.",
@@ -62,14 +62,11 @@
     revised: [20 March 2026],
     accepted: [10 April 2026],
     online: [25 April 2026],
-    doi: "https://doi.org/10.1016/j.artmed.2026.XXXXXX",
+    doi: "https://doi.org/123456/j.artmed.2026.XXXXXX",
     open: cc-by,
     extra-info: none,
   ),
 )
-#set text(font: "Libertinus Serif")
-#show math.equation: set text(font: "New Computer Modern Math")
-#show raw: set text(font: "DejaVu Sans Mono")
 
 #show heading.where(level: 2): set text(
   style: "normal",
@@ -91,7 +88,10 @@ This gap has two implications. First, it prevents a straightforward transfer of 
 
 This paper therefore studies Vietnamese ICD-10 coding under a low-resource public-data setting. Instead of assuming access to private hospital data, we combine public Vietnamese medical text with an ICD-10 ontology derived from official Vietnamese coding resources @vietnam_icd10_decision. Because expert note-level ICD labels are not publicly available, we construct a silver-labeled dataset through weak supervision and define the task at two practical granularities: chapter prediction and 3-character ICD-10 code prediction. The goal is not to claim hospital-ready performance, but to establish a reproducible and credible foundation for future work in Vietnamese ICD coding.
 
-The paper makes three contributions. First, it defines a transparent data construction pipeline for creating a silver-labeled Vietnamese ICD benchmark from public resources. Second, it adapts a TransICD-style label-aware architecture to a Vietnamese setting in which both the text data and the supervision signal are substantially weaker than in English benchmark studies. Third, it proposes an evaluation framework that combines standard quantitative metrics with qualitative evidence inspection so that model behavior can be interpreted in light of weak supervision noise rather than treated as a black-box outcome.
+The paper makes three contributions:
++ It defines a transparent data construction pipeline for creating a silver-labeled Vietnamese ICD benchmark from public resources.
++ It adapts a TransICD-style label-aware architecture to a Vietnamese setting in which both the text data and the supervision signal are substantially weaker than in English benchmark studies.
++ It proposes an evaluation framework that combines standard quantitative metrics with qualitative evidence inspection so that model behavior can be interpreted in light of weak supervision noise rather than treated as a black-box outcome.
 
 The remainder of the paper is organized as follows. Section 2 reviews automatic ICD coding, ontology-guided weak supervision, and Vietnamese medical NLP resources. Section 3 presents the proposed data construction and model adaptation pipeline. Section 4 describes the experimental protocol, baselines, and evaluation strategy. Section 5 presents the reporting structure for results and discusses validity. Section 6 concludes the paper.
 
@@ -127,6 +127,13 @@ The main gap is that public Vietnamese medical NLP datasets generally do not pro
 
 This resource situation also affects model selection. In a high-resource setting, the main question might be which architecture extracts the best performance from a fixed benchmark. In the Vietnamese setting, a more basic question comes first: how can the task itself be formulated so that the dataset, the supervision mechanism, and the evaluation protocol remain consistent with what public resources actually support? The present work addresses that earlier stage. It treats benchmark construction as part of the contribution rather than as a preliminary step hidden behind the experimental section.
 
+#figure(
+  image("images/vitransicd_pipeline.webp", width: 100%),
+  placement: top,
+  scope: "parent",
+  caption: [Overview of the ViTransICD framework],
+) <fig:logo>
+
 = Methodology
 
 == Problem Formulation and Scope
@@ -137,7 +144,12 @@ This formulation is narrower than full hospital discharge-summary coding. The st
 
 == Overview of the Pipeline
 
-The proposed pipeline contains five stages: ICD-10 ontology construction from official Vietnamese resources; public Vietnamese medical text collection and normalization; mention extraction and terminology normalization; ontology-based candidate generation and weak supervision aggregation; and TransICD-style model adaptation and evaluation on the resulting silver-labeled dataset.
+The proposed pipeline contains five stages:
++ ICD-10 ontology construction from official Vietnamese resources.
++ Public Vietnamese medical text collection and normalization.
++ Mention extraction and terminology normalization.
++ Ontology-based candidate generation and weak supervision aggregation.
++ TransICD-style model adaptation and evaluation on the resulting silver-labeled dataset.
 
 Conceptually, the workflow moves from raw public Vietnamese medical text to normalized mentions, then to ontology-linked candidates, then to silver labels, and finally to label-aware neural training. This ordering is important because each stage reduces ambiguity before the next one begins. The text collection stage defines the documents, the mention extraction stage identifies medically relevant spans, the candidate generation stage converts those spans into label hypotheses, and the weak supervision stage turns those hypotheses into a document-level training signal.
 
@@ -259,6 +271,12 @@ The ablation design is important because the proposed system has several interac
 
 == Qualitative Analysis Protocol
 
+#figure(
+  image("images/vitransicd_worked_example.webp", width: 100%),
+  placement: top,
+  caption: [Step-by-step extraction and matching pipeline for a sample.],
+) <fig:example>
+
 For qualitative analysis, we sample predicted cases from four groups: high-confidence true positives, high-confidence false positives, false negatives on frequent labels, and false negatives on rare labels. For each case, we record the input document, the predicted label or labels, the top evidence spans, the matched ICD description, the attention distribution, and optional Integrated Gradients attribution.
 
 The goal is to determine whether the model relies on clinically meaningful evidence or only on brittle lexical overlap. This qualitative layer is essential because the benchmark is silver-labeled. If a prediction looks incorrect under the silver labels but is supported by a plausible diagnosis-bearing span and a semantically aligned ontology description, that case may indicate supervision noise rather than model failure. Conversely, a high-confidence prediction with weak or irrelevant supporting spans may reveal a genuine modeling problem even if the metric does not make it obvious.
@@ -289,18 +307,21 @@ The quantitative results will be inserted once training and evaluation are compl
 )
 
 // Table 2. Results for 3-character ICD-10 prediction.
-=== 3-character ICD-10 prediction
 
-#table(
-  columns: 6,
-  table.header(
-    [*Model*], [*Micro F1*], [*Macro F1*], [*Macro AUC*], [*P@\5*], [*R@\5*]
+#figure(
+  caption: [Chapter-level prediction results.],
+
+  table(
+    columns: 6,
+    table.header(
+      [*Model*], [*Micro F1*], [*Macro F1*], [*Macro AUC*], [*P@\5*], [*R@\5*]
+    ),
+    [Exact Match], [TBD], [TBD], [TBD], [TBD], [TBD],
+    [Fuzzy Match], [TBD], [TBD], [TBD], [TBD], [TBD],
+    [BM25], [TBD], [TBD], [TBD], [TBD], [TBD],
+    [Encoder + Linear], [TBD], [TBD], [TBD], [TBD], [TBD],
+    [TransICD-Vi], [TBD], [TBD], [TBD], [TBD], [TBD],
   ),
-  [Exact Match], [TBD], [TBD], [TBD], [TBD], [TBD],
-  [Fuzzy Match], [TBD], [TBD], [TBD], [TBD], [TBD],
-  [BM25], [TBD], [TBD], [TBD], [TBD], [TBD],
-  [Encoder + Linear], [TBD], [TBD], [TBD], [TBD], [TBD],
-  [TransICD-Vi], [TBD], [TBD], [TBD], [TBD], [TBD],
 )
 
 == Planned Interpretation
@@ -309,13 +330,13 @@ The experiments are designed to test whether ontology-informed supervision and c
 
 The planned interpretation should remain conservative. If the proposed model outperforms symbolic baselines, the result should be interpreted as evidence that label-aware contextual modeling is useful in this benchmark setting, not as proof of hospital-ready coding quality. If the gains are small, that outcome is also informative, because it would suggest that under current public-data constraints the main bottleneck may lie in supervision quality or label ambiguity rather than in model architecture alone.
 
-== Explainability Analysis Template
+== Qualitative Explainability Analysis
 
-A representative qualitative case can be reported in the following form:
+In addition to the quantitative results, we examine several representative cases to better understand the model's predictions. For each case, we report the predicted ICD code, the confidence score, the main evidence spans in the text, and the ontology description that is most closely related to the prediction. When necessary, we also use gradient-based attribution to confirm whether the highlighted spans are truly important.
 
-Document excerpt: `...`. Predicted label: `J18` (Pneumonia, unspecified organism). Confidence: `TBD`. Top evidence spans: `sốt cao`, `khó thở`, `thâm nhiễm phổi`, `viêm phổi`. Matched ontology description: `Viêm phổi, tác nhân không xác định`. Attribution note: the model focused mainly on diagnosis-bearing spans rather than on general history text.
+For example, a document predicted as J18 may include evidence spans such as "sốt cao", "khó thở", "thâm nhiễm phổi", and "viêm phổi", together with the matched ontology description "Viêm phổi, tác nhân không xác định". This example helps show whether the model focuses on diagnosis-related information instead of less relevant parts of the document.
 
-Such examples help show whether the model remains clinically plausible in the presence of weak-supervision noise. They also make it easier for the reader to judge whether the explanation signal is genuinely useful or merely decorative.
+This qualitative analysis is especially important because the benchmark is silver-labeled. A prediction that appears wrong under the silver label may still be clinically plausible, and a prediction that appears correct may still depend on weak lexical overlap. Therefore, these examples help us assess whether the explanation mechanism is useful and whether the model's behavior is clinically reasonable.
 
 == Threats to Validity
 

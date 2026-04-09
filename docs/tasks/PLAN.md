@@ -39,24 +39,24 @@ The coding agent should refer to the documents inside `docs/data/v1/` for implem
 ### Stream A: Data Engineering
 
 - **DE-1**: Unified schema definition (**Completed**, P0)
-- **DE-2**: Public dataset ingestion (**In Progress**, P0)
-- **DE-3**: Parse source formats to bronze (**In Progress**, P0)
+- **DE-2**: Public dataset ingestion (**Completed**, P0)
+- **DE-3**: Parse source formats to bronze (**Completed**, P0)
 
 ### Stream B: Ontology and Rules
 
-- **ON-1**: Parse official ICD-10 PDF (primary) + MoH web fallback (**In Progress**, P0)
-- **ON-1b**: Extract intro guidance and official 3-char policy from PDF (**TODO**, P0)
-- **ON-2**: Normalize ontology from PDF and build bilingual index (**TODO**, P0)
-- **ON-2b**: Build alias dictionary from PDF synonyms and inclusion text (**TODO**, P0)
-- **ON-3**: Extract coding rules and notes from PDF intro + per-code notes (**TODO**, P0)
+- **ON-1**: Parse official ICD-10 PDF (primary) + MoH web fallback (**Completed**, P0)
+- **ON-1b**: Extract intro guidance and official 3-char policy from PDF (**Completed**, P0)
+- **ON-2**: Normalize ontology from PDF and build bilingual index (**Completed**, P0)
+- **ON-2b**: Build alias dictionary from PDF synonyms and inclusion text (**Completed**, P0)
+- **ON-3**: Extract coding rules and notes from PDF intro + per-code notes (**Completed**, P0)
 - **ON-3b**: Parse dagger/asterisk and cross-reference links (**TODO**, P1)
 
 ### Stream C: Dataset Creation (Weak Supervision)
 
-- **DC-1**: Normalize text, segment, and extract mentions (**TODO**, P0)
-- **DC-2**: Abbreviation normalization (**TODO**, P0)
-- **DC-2b**: Ontology-driven mention normalization using PDF alias dictionary (**TODO**, P0)
-- **DC-3**: Candidate ICD generation using PDF-first ontology (**TODO**, P0)
+- **DC-1**: Normalize text, segment, and extract mentions (**Completed**, P0)
+- **DC-2**: Abbreviation normalization (**Completed**, P0)
+- **DC-2b**: Ontology-driven mention normalization using PDF alias dictionary (**Completed**, P0)
+- **DC-3**: Candidate ICD generation using PDF-first ontology (**Completed**, P0)
 - **DC-4**: Weak supervision aggregation (**TODO**, P0)
 - **DC-5**: Build packaged train/val/test split from silver outputs (**TODO**, P0)
 - **QA-1**: Manual QA on high-confidence silver labels using PDF rules (**TODO**, P1)
@@ -66,17 +66,17 @@ The coding agent should refer to the documents inside `docs/data/v1/` for implem
 - **MA-1**: SEA-LION Backbone wrapper (**Completed**, P1)
 - **MA-2**: Linear head (**TODO**, P1)
 - **MA-3**: TransICD code-wise attention head (**Completed**, P0)
-- **MA-4**: Label encoding from bilingual PDF ontology (**TODO**, P0)
+- **MA-4**: Label encoding from bilingual PDF ontology (**Completed**, P0)
 - **TE-1**: Training loop on packaged silver-derived splits (**TODO**, P0)
 - **TE-1b**: Train chapter-first model before full 3-char model (**TODO**, P1)
 - **TE-2**: Evaluation metrics setup (**Completed**, P0)
 
 ### Stream E: Baselines, Evaluation, and Explainability
 
-- **BM-1**: Rule-based baseline using official PDF notes (**TODO**, P0)
+- **BM-1**: Rule-based baseline using official PDF notes (**Completed**, P0)
 - **BM-1b**: Chapter-first baseline with official 3-char backoff (**TODO**, P0)
-- **BM-2**: TF-IDF/BM25 baseline over bilingual PDF ontology (**TODO**, P1)
-- **EX-1**: Token-to-text alignment (**TODO**, P1)
+- **BM-2**: TF-IDF/BM25 baseline over bilingual PDF ontology (**Completed**, P1)
+- **EX-1**: Token-to-text alignment (**In Progress**, P1)
 - **EX-2**: Attention-based explanation (**TODO**, P0)
 - **EX-4**: Label alignment explanation from PDF descriptors (**TODO**, P1)
 - **EX-5**: Final report formatting (**TODO**, P0)
