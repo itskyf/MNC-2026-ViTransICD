@@ -4,58 +4,125 @@ Objective: A 48-hour feasibility study to adapt TransICD-style modeling for auto
 
 ## 1. Project Overview
 
-This project implements a low-resource pipeline for 3-character ICD-10 code prediction. It utilizes SEA-LION-ModernBERT-300M as the backbone and generates silver labels through a multi-source weak supervision framework.
+This project implements a low-resource pipeline for **3-character ICD-10 code prediction/linking** on **public Vietnamese medical text**. It uses **SEA-LION-ModernBERT-300M** as the backbone and generates **silver labels** through ontology-driven weak supervision.
+
+The plan has been updated to leverage an **official Vietnamese ICD-10 PDF resource** as the **primary ontology source**, with the MoH/KCB website used only as a fallback when needed.
 
 ## 2. Existing Specifications
 
-The coding agent should refer to the following documents for implementation details:
+The coding agent should refer to the documents inside `docs/data/v1/` for implementation detail.
 
-- Data Schema: `docs/data/v1/de-01-schemas.md` (Defines data structures for text, ontology, and labels)
-- ICD Ontology: `docs/data/v1/on-01-icd-ontology.md` (Official MoH ICD-10 structure and searchable fields)
+## 3. Updated Implementation Principles
 
-## 3. Task Streams and Status
+### 3.1 Ontology Source Priority
+
+- **Primary source:** official ICD-10 PDF
+- **Fallback source:** MoH/KCB ICD website only for missing sections or parse failures
+
+### 3.2 Target Granularity
+
+- **Primary target:** ICD-10 **3-character** codes
+- **Fallback benchmark:** **chapter prediction**
+- **Optional only if time remains:** limited 4-character pilot
+
+### 3.3 Why This Scope Is Locked
+
+- The official ICD-10 material already provides:
+  - chapter -> block -> 3-character -> 4-character hierarchy,
+  - bilingual Vietnamese-English terminology,
+  - inclusion/exclusion notes,
+  - principal diagnosis and fallback coding guidance.
+- This reduces ontology construction effort and supports a more stable 48-hour implementation.
+
+## 4. Task Streams and Status (P0 and P1 only)
 
 ### Stream A: Data Engineering
 
-Task DE-1: Unified schema definition (Completed).
-Task DE-2: Public dataset ingestion (VietMed-Sum, PET/CT, etc.).
-Task DE-3: Text normalization and sentence segmentation.
+- **DE-1**: Unified schema definition (**Completed**, P0)
+- **DE-2**: Public dataset ingestion (**In Progress**, P0)
+- **DE-3**: Parse source formats to bronze (**In Progress**, P0)
 
-### Stream B: Ontology and Baselines
+### Stream B: Ontology and Rules
 
-Task ON-1 to ON-3: Ontology construction and rule extraction (Completed).
-Task BM-1: Lexical baseline (Exact/Fuzzy matching).
-Task BM-2: Retrieval baseline (TF-IDF/BM25).
+- **ON-1**: Parse official ICD-10 PDF (primary) + MoH web fallback (**In Progress**, P0)
+- **ON-1b**: Extract intro guidance and official 3-char policy from PDF (**TODO**, P0)
+- **ON-2**: Normalize ontology from PDF and build bilingual index (**TODO**, P0)
+- **ON-2b**: Build alias dictionary from PDF synonyms and inclusion text (**TODO**, P0)
+- **ON-3**: Extract coding rules and notes from PDF intro + per-code notes (**TODO**, P0)
+- **ON-3b**: Parse dagger/asterisk and cross-reference links (**TODO**, P1)
 
 ### Stream C: Dataset Creation (Weak Supervision)
 
-Task DC-1: Medical mention extraction.
-Task DC-2: Abbreviation normalization.
-Task DC-3: Candidate ICD generation (Depends on Stream B).
-Task DC-4: Weak supervision aggregation (Produces silver labels).
-Task DC-5: Train/Val/Test data splitting.
+- **DC-1**: Normalize text, segment, and extract mentions (**TODO**, P0)
+- **DC-2**: Abbreviation normalization (**TODO**, P0)
+- **DC-2b**: Ontology-driven mention normalization using PDF alias dictionary (**TODO**, P0)
+- **DC-3**: Candidate ICD generation using PDF-first ontology (**TODO**, P0)
+- **DC-4**: Weak supervision aggregation (**TODO**, P0)
+- **DC-5**: Build packaged train/val/test split from silver outputs (**TODO**, P0)
+- **QA-1**: Manual QA on high-confidence silver labels using PDF rules (**TODO**, P1)
 
-### Stream D: Model Architecture
+### Stream D: Model Architecture and Training
 
-Task MA-1: ModernBERT encoder wrapper.
-Task MA-3: TransICD code-wise attention head.
-Task TE-1: Training on silver-labeled data.
+- **MA-1**: SEA-LION Backbone wrapper (**Completed**, P1)
+- **MA-2**: Linear head (**TODO**, P1)
+- **MA-3**: TransICD code-wise attention head (**Completed**, P0)
+- **MA-4**: Label encoding from bilingual PDF ontology (**TODO**, P0)
+- **TE-1**: Training loop on packaged silver-derived splits (**TODO**, P0)
+- **TE-1b**: Train chapter-first model before full 3-char model (**TODO**, P1)
+- **TE-2**: Evaluation metrics setup (**Completed**, P0)
 
-### Stream E: Evaluation and Explainability
+### Stream E: Baselines, Evaluation, and Explainability
 
-Task TE-2: Evaluation suite (Micro-F1, Macro-AUC, P@k).
-Task EX-1: Token-to-text alignment.
-Task EX-2: Code-wise attention span extraction.
-Task EX-5: Final report formatting.
+- **BM-1**: Rule-based baseline using official PDF notes (**TODO**, P0)
+- **BM-1b**: Chapter-first baseline with official 3-char backoff (**TODO**, P0)
+- **BM-2**: TF-IDF/BM25 baseline over bilingual PDF ontology (**TODO**, P1)
+- **EX-1**: Token-to-text alignment (**TODO**, P1)
+- **EX-2**: Attention-based explanation (**TODO**, P0)
+- **EX-4**: Label alignment explanation from PDF descriptors (**TODO**, P1)
+- **EX-5**: Final report formatting (**TODO**, P0)
 
-## 4. Key Dependencies and Parallelism
+## 5. Key Dependencies and Parallelism
 
-- Foundation: DE-1 and ON-1/2 are prerequisites for all logic.
-- Parallel Execution: Model Architecture (Stream D) can be developed using dummy data based on DE-1 schemas while Dataset Creation (Stream C) is processing.
-- Critical Path: Data Processing -> Weak Supervision -> Model Training -> Explainability.
+### 5.1 Foundation Dependencies
 
-## 5. Scope Constraints
+- **DE-1** remains the schema foundation for all downstream tasks.
+- **ON-1 / ON-2 / ON-3** now form the primary ontology-and-rules foundation.
+- **ON-2b** is required before strong ontology-driven normalization and exact/alias matching.
 
-- Target: 3-character ICD-10 codes.
-- Language: Vietnamese text with bilingual ontology support.
-- Non-Overclaim: Focus on public data feasibility, not clinical EMR deployment.
+### 5.2 Parallel Execution Opportunities
+
+- **Model Architecture** can continue in parallel using dummy data because **MA-1** and **MA-3** already exist.
+- **Ontology parsing** and **public data ingestion** can proceed simultaneously.
+- **Baselines** can start as soon as **ON-2** and **DC-1/DC-2b** are available, without waiting for full model training.
+
+### 5.3 Critical Path
+
+PDF Ontology Parsing -> Ontology Normalization + Rules -> Mention Normalization -> Candidate Generation -> Weak Supervision -> Train Split Packaging -> Model Training -> Explainability
+
+## 6. Scope Constraints
+
+- **Target:** ICD-10 **3-character** codes
+- **Fallback:** ICD chapter prediction
+- **Language:** Vietnamese text with bilingual ontology support
+- **Data setting:** public medical text only
+- **Non-overclaim:** feasibility study for public-data ICD coding/linking, not hospital EMR deployment
+
+## 7. Updated Implementation Priorities
+
+### P0 Must-Haves
+
+1. Parse the official ICD-10 PDF and normalize the ontology
+2. Extract official coding rules from the introduction and note fields
+3. Build alias dictionary and ontology-driven candidate generation
+4. Produce silver labels and packaged train/val/test splits
+5. Run rule-based and chapter-first baselines
+6. Train TransICD-style model on 3-character labels
+7. Deliver basic explainability outputs
+
+### P1 Important Support Tasks
+
+1. Parse cross-references (dagger/asterisk) if feasible
+2. Implement linear baseline head and chapter-first model fallback
+3. Run TF-IDF/BM25 retrieval baseline
+4. Add token alignment and label-alignment explanations
+5. Perform lightweight manual QA on high-confidence silver labels

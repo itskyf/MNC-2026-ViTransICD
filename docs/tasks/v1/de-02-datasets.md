@@ -14,8 +14,8 @@ This task reflects raw source ingestion only.
 ## Layer & Storage
 
 * Layer: bronze
-* Output root: `data/bronze/<dataset_name>/`
-* One directory per dataset
+* Output root: `data/bronze/<dataset_name>/snapshots/`
+* One dataset per directory, grouped under `snapshots`
 * One JSONL per split
 * Manifest per dataset
 
@@ -63,8 +63,8 @@ Optional fields:
 
 ## Output layout
 
-* `data/bronze/<dataset_name>/<split>.jsonl`
-* `data/bronze/<dataset_name>/manifest.json`
+* `data/bronze/<dataset_name>/snapshots/<split>.jsonl`
+* `data/bronze/<dataset_name>/snapshots/manifest.json`
 
 ## Validation policy
 

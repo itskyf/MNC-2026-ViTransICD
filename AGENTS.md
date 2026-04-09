@@ -12,7 +12,7 @@
 - Documentation & Logging: Use Google-style docstrings. Keep comments and logs concise, clear, and strictly essential.
 - DO NOT use `noqa`, `object`, `typing.Any`.
 
-## Skills
+## Agent Skills and Tools
 
-- `get-api-docs` skill: fetch the latest API, SDK, or library documentation.
-- Leverage `hf-mcp-server` tools.
+- Use `get-api-docs` skill to fetch the latest API, SDK, or library documentation.
+- Leverage `hf-mcp-server` tools for HuggingFace related tasks.

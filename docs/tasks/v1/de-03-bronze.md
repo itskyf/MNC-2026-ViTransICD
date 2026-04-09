@@ -15,9 +15,9 @@ This task defines what constitutes a “document” per dataset, without any sem
 ## Layer & Storage
 
 * Layer: bronze
-* Output root: `data/bronze/<dataset_name>/`
-* DE‑3 outputs MUST coexist with DE‑2 outputs under the same dataset directory.
-* Do not introduce a new storage layer.
+* Output root: `data/bronze/<dataset_name>/documents/`
+* DE‑3 outputs MUST coexist with DE‑2 outputs under the same dataset directory (separated by `snapshots/` and `documents/` groups).
+* Do not introduce a new storage layer like `data/raw/`.
 * Do not overwrite DE‑2 snapshot files.
 
 ## Scope
@@ -102,14 +102,14 @@ Validation:
 
 ## Output layout
 
-Under the existing bronze root:
+Under the existing bronze dataset directory (`data/bronze/<dataset_name>/`):
 
-* DE‑2 snapshot files remain untouched.
-* DE‑3 writes parsed document files using a distinct, explicit naming convention, for example:
-  * `<split>.docs.jsonl`
-  * or `documents/<split>.jsonl` if such subpattern already exists.
+* DE‑2 snapshot files remain untouched in `snapshots/`.
+* DE‑3 writes parsed document files using a grouped subdirectory:
+  * `documents/<split>.jsonl`
+  * `documents/manifest.json`
 
-Do not invent a new layer name.
+Do not invent a new root layer name (like `data/raw/`). Do not flatten files into `data/bronze/<dataset_name>/`.
 
 ## Manifest
 
@@ -136,7 +136,7 @@ Reuse an existing manifest schema if one exists.
 * DE‑2 artifacts remain intact.
 * No semantic transformation is applied.
 * doc\_id is deterministic.
-* Bronze directory layout remains `data/bronze/<dataset_name>`.
+* Bronze directory layout uses group subdirectories under `data/bronze/<dataset_name>` (e.g., `snapshots`, `documents`).
 
 ## Minimal pytest coverage
 
