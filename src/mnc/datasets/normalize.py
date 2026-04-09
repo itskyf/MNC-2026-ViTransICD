@@ -181,7 +181,7 @@ def normalize_dataset(
     ment_counts: dict[str, int] = {}
     failed_counts: dict[str, int] = {}
     input_splits: list[str] = []
-    all_errors: list[dict[str, object]] = []
+    all_errors: list[dict[str, str | int]] = []
 
     split_files = sorted(
         f for f in input_dir.glob("*.jsonl") if f.name not in _SKIP_FILES

@@ -1,5 +1,6 @@
 """Unit tests for OntologyLabelEncoder."""
 
+import typing
 from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
@@ -45,7 +46,7 @@ def _make_mock_encoder(
 
     def mock_tokenize(
         texts: list[str],
-        **_kwargs: object,
+        **_kwargs: str | float | bool | None,
     ) -> dict[str, torch.Tensor]:
         n = len(texts)
         return {
@@ -152,7 +153,7 @@ def test_empty_input_raises(label_encoder: OntologyLabelEncoder) -> None:
 
 # 9. Invalid item type raises TypeError
 def test_invalid_type_raises(label_encoder: OntologyLabelEncoder) -> None:
-    bad: list[OntologyCode] = ["not an ontology code"]  # pyright: ignore[reportAssignmentType]
+    bad = typing.cast("list[OntologyCode]", ["not an ontology code"])
     with pytest.raises(TypeError, match="expected OntologyCode"):
         label_encoder.encode_labels(bad)
 
