@@ -1,0 +1,338 @@
+ref1:
+  type: article
+  title: "MIMIC-III, a freely accessible critical care database"
+  author:
+    [
+      "Johnson, A. E. W.",
+      "Pollard, T. J.",
+      "Shen, L.",
+      "Lehman, L. H.",
+      "Feng, M.",
+      "Ghassemi, M.",
+      "Moody, B.",
+      "Szolovits, P.",
+      "Celi, L. Anthony",
+      "Mark, R. G.",
+    ]
+  date: 2016
+  parent:
+    title: Scientific Data
+    volume: 3
+  pages: 160035
+
+ref2:
+  type: article
+  title: "MIMIC-IV, a freely accessible electronic health record dataset"
+  author: ["Johnson, A. E. W.", "Bulgarelli, L.", "Shen, L.", "others"]
+  date: 2023
+  parent:
+    title: Scientific Data
+    volume: 10
+    issue: 1
+
+ref3:
+  type: article
+  title: "A unified review of deep learning for automated medical coding"
+  author:
+    [
+      "Ji, S.",
+      "Li, X.",
+      "Sun, W.",
+      "Dong, H.",
+      "Taalas, A.",
+      "Zhang, Y.",
+      "Wu, H.",
+      "Pitkänen, E.",
+      "Marttinen, P.",
+    ]
+  date: 2024
+  parent:
+    title: ACM Computing Surveys
+    volume: 56
+    issue: 12
+  serial-number:
+    serial: "Article 306"
+
+ref4:
+  type: proceedings
+  title: "Explainable prediction of medical codes from clinical text"
+  author:
+    ["Mullenbach, J.", "Wiegreffe, S.", "Duke, J.", "Sun, J.", "Eisenstein, J."]
+  date: 2018
+  parent:
+    title: Proceedings of NAACL-HLT 2018
+  pages: 1101-1111
+
+ref5:
+  type: proceedings
+  title: "ICD coding from clinical text using multi-filter residual convolutional neural network"
+  author: ["Li, F.", "Yu, H."]
+  date: 2020
+  parent:
+    title: Proceedings of the AAAI Conference on Artificial Intelligence
+    volume: 34
+    issue: 5
+  pages: 8180-8187
+
+ref6:
+  type: proceedings
+  title: "A label attention model for ICD coding from clinical text"
+  author: ["Vu, T.", "Nguyen, D. Q.", "Nguyen, A."]
+  date: 2020
+  parent:
+    title: Proceedings of IJCAI 2020
+  pages: 3335-3341
+
+ref7:
+  type: proceedings
+  title: "HyperCore: Hyperbolic and co-graph representation for automatic ICD coding"
+  author: ["Cao, P.", "Chen, Y.", "Liu, K.", "Zhao, J.", "Liu, S.", "Chong, W."]
+  date: 2020
+  parent:
+    title: Proceedings of ACL 2020
+  pages: 3105-3114
+
+ref8:
+  type: article
+  title: "Explainable automated coding of clinical notes using hierarchical label-wise attention networks and label embedding initialisation"
+  author: ["Dong, H.", "Suarez-Paniagua, V.", "Whiteley, W.", "Wu, H."]
+  date: 2021
+  parent:
+    title: Journal of Biomedical Informatics
+    volume: 116
+  pages: 103728
+
+ref9:
+  type: article
+  title: "Hierarchical label-wise attention transformer model for explainable ICD coding"
+  author:
+    ["Liu, L.", "Perez-Concha, O.", "Nguyen, A.", "Bennett, V.", "Jorm, L."]
+  date: 2022
+  parent:
+    title: Journal of Biomedical Informatics
+    volume: 133
+  pages: 104161
+
+ref10:
+  type: proceedings
+  title: "PLM-ICD: Automatic ICD coding with pretrained language models"
+  author: ["Huang, C.-W.", "Tsai, S.-C.", "Chen, Y.-N."]
+  date: 2022
+  parent:
+    title: Proceedings of the 4th Clinical Natural Language Processing Workshop
+  pages: 10-20
+
+ref11:
+  type: proceedings
+  title: "TransICD: Transformer based code-wise attention model for explainable ICD coding"
+  author: ["Biswas, B.", "Pham, T.-H.", "Zhang, P."]
+  date: 2021
+  parent:
+    title: "Artificial Intelligence in Medicine: 19th International Conference, AIME 2021"
+    volume: LNCS 12721
+  pages: 469-478
+
+ref12:
+  type: article
+  title: "MIMIC-IV-ICD: A new benchmark for extreme multilabel classification"
+  author:
+    [
+      "Nguyen, T.-T.",
+      "Schlegel, V.",
+      "Kashyap, A.",
+      "Winkler, S.",
+      "Huang, S.-S.",
+      "Liu, J.-J.",
+      "Lin, C.-J.",
+    ]
+  date: 2023
+  parent:
+    title: arXiv preprint
+  serial-number:
+    arxiv: "2304.13998"
+
+ref13:
+  type: proceedings
+  title: "Learning imbalanced datasets with label-distribution-aware margin loss"
+  author: ["Cao, K.", "Wei, C.", "Gaidon, A.", "Arechiga, N.", "Ma, T."]
+  date: 2019
+  parent:
+    title: Advances in Neural Information Processing Systems 32
+
+ref14:
+  type: proceedings
+  title: "Unsupervised cross-lingual representation learning at scale"
+  author:
+    [
+      "Conneau, A.",
+      "Khandelwal, K.",
+      "Goyal, N.",
+      "Chaudhary, V.",
+      "Wenzek, G.",
+      "Guzmán, F.",
+      "Grave, E.",
+      "Ott, M.",
+      "Zettlemoyer, L.",
+      "Stoyanov, V.",
+    ]
+  date: 2020
+  parent:
+    title: Proceedings of ACL 2020
+  pages: 8440-8451
+
+ref15:
+  type: proceedings
+  title: "MiniLMv2: Multi-head self-attention relation distillation for compressing pretrained transformers"
+  author: ["Wang, W.", "Bao, H.", "Huang, S.", "Dong, L.", "Wei, F."]
+  date: 2021
+  parent:
+    title: Findings of ACL-IJCNLP 2021
+  pages: 2140-2151
+
+ref16:
+  type: proceedings
+  title: "Making monolingual sentence embeddings multilingual using knowledge distillation"
+  author: ["Reimers, N.", "Gurevych, I."]
+  date: 2020
+  parent:
+    title: Proceedings of EMNLP 2020
+  pages: 4512-4525
+
+ref17:
+  type: article
+  title: "Longformer: The long-document transformer"
+  author: ["Beltagy, I.", "Peters, M. E.", "Cohan, A."]
+  date: 2020
+  parent:
+    title: arXiv preprint
+  serial-number:
+    arxiv: "2004.05150"
+
+ref18:
+  type: proceedings
+  title: "Code synonyms do matter: Multiple synonyms matching network for automatic ICD coding"
+  author: ["Yuan, Z.", "Tan, C.", "Huang, S."]
+  date: 2022
+  parent:
+    title: "Proceedings of ACL 2022, Volume 2: Short Papers"
+  pages: 808-814
+
+ref19:
+  type: proceedings
+  title: "Accurate and well-calibrated ICD code assignment through attention over diverse label embeddings"
+  author: ["Gomes, G.", "Coutinho, I.", "Martins, B."]
+  date: 2024
+  parent:
+    title: Proceedings of EACL 2024
+  pages: 2302-2315
+
+ref20:
+  type: proceedings
+  title: "Less is more: Explainable and efficient ICD code prediction with clinical entities"
+  author: ["Douglas, J. C.", "Gan, Y.", "Hachey, B.", "Kummerfeld, J. K."]
+  date: 2025
+  parent:
+    title: Proceedings of ACL 2025
+  pages: 30835-30847
+
+ref21:
+  type: article
+  title: "Snorkel: Rapid training data creation with weak supervision"
+  author:
+    [
+      "Ratner, A.",
+      "Bach, S. H.",
+      "Ehrenberg, H.",
+      "Fries, J.",
+      "Wu, S.",
+      "Ré, C.",
+    ]
+  date: 2020
+  parent:
+    title: The VLDB Journal
+    volume: 29
+    issue: 2
+  pages: 709-730
+
+ref22:
+  type: article
+  title: "Ontology-driven weak supervision for clinical entity classification in electronic health records"
+  author:
+    [
+      "Fries, J. A.",
+      "Steinberg, E.",
+      "Khattar, S.",
+      "Fleming, S. L.",
+      "Posada, J.",
+      "Callahan, A.",
+      "Shah, N. H.",
+      "Ré, C.",
+    ]
+  date: 2021
+  parent:
+    title: Nature Communications
+    volume: 12
+  pages: 2017
+
+ref23:
+  type: article
+  title: "The probabilistic relevance framework: BM25 and beyond"
+  author: ["Robertson, S.", "Zaragoza, H."]
+  date: 2009
+  parent:
+    title: Foundations and Trends in Information Retrieval
+    volume: 3
+    issue: 4
+  pages: 333-389
+
+ref24:
+  type: proceedings
+  title: "Axiomatic attribution for deep networks"
+  author: ["Sundararajan, M.", "Taly, A.", "Yan, Q."]
+  date: 2017
+  parent:
+    title: Proceedings of the 34th International Conference on Machine Learning
+  pages: 3319-3328
+
+ref25:
+  type: proceedings
+  title: "Medical spoken named entity recognition"
+  author:
+    [
+      "Le-Duc, K.",
+      "Thulke, D.",
+      "Tran, H.-P.",
+      "Vo-Dang, L.",
+      "Nguyen, K.-N.",
+      "Hy, T.-S.",
+      "Schlüter, R.",
+    ]
+  date: 2025
+  parent:
+    title: "Proceedings of NAACL 2025, Industry Track"
+  pages: 724-783
+
+ref26:
+  type: proceedings
+  title: "ViMedAQA: A Vietnamese medical abstractive question-answering dataset and findings of large language model"
+  author: ["Tran, M.-N.", "Nguyen, P.-V.", "Nguyen, L.", "Dinh, D."]
+  date: 2024
+  parent:
+    title: "Proceedings of ACL 2024, Student Research Workshop"
+  pages: 252-260
+
+ref27:
+  type: misc
+  title: "Decision No. 4400/QD-BYT on the promulgation of the “International Classification of Diseases and Causes of Death (ICD-10)” and the “Guidelines for ICD-10 Disease Coding” for use in medical examination and treatment establishments"
+  author: ["Ministry of Health of Vietnam"]
+  date: 2020
+  note: "English translation of Vietnamese title"
+
+ref28:
+  type: misc
+  title: "SEA-LION-ModernBERT-300M-checkpoints"
+  author: ["AI Singapore"]
+  date: 2026
+  parent:
+    title: Hugging Face
+  note: "Model card"
