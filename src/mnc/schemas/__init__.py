@@ -7,9 +7,10 @@ from mnc.schemas.candidate import CandidateLink
 from mnc.schemas.document import DocumentRecord, JsonValue
 from mnc.schemas.explanation import EvidenceSpan, ExplanationRecord
 from mnc.schemas.manifest import BronzeManifest
-from mnc.schemas.mention import MentionRecord
+from mnc.schemas.mention import MentionRecord, MentionType
 from mnc.schemas.ontology import OntologyCode
 from mnc.schemas.prediction import PredictionRecord
+from mnc.schemas.sentence import SentenceSpanRecord
 from mnc.schemas.silver import SilverRecord
 from mnc.schemas.snapshot import SnapshotRecord
 
@@ -21,8 +22,10 @@ __all__ = [
     "ExplanationRecord",
     "JsonValue",
     "MentionRecord",
+    "MentionType",
     "OntologyCode",
     "PredictionRecord",
+    "SentenceSpanRecord",
     "SilverRecord",
     "SnapshotRecord",
 ]
