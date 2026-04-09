@@ -1,264 +1,152 @@
-# DE-3 Spec: Parse source formats to bronze
+
+# DE-3 Spec: Parse source formats to bronze documents
 
 ## Goal
 
-Implement the first structured bronze transformation from DE-2 snapshot records into source-faithful bronze documents.
+Convert bronze snapshot records into bronze **document‑level records**.
 
-This task converts dataset-specific snapshot payloads into the existing bronze document schema defined in `src/mnc/schemas/`.
+This task defines what constitutes a “document” per dataset, without any semantic transformation.
 
-The output must remain source-faithful. Do not normalize text, segment sentences, extract mentions, generate labels, or add retrieval views here.
+## Datasets
+
+* [leduckhai/VietMed-Sum](https://huggingface.co/datasets/leduckhai/VietMed-Sum)
+* [tarudesu/ViHealthQA](https://huggingface.co/datasets/tarudesu/ViHealthQA)
+
+## Layer & Storage
+
+* Layer: bronze
+* Output root: `data/bronze/<dataset_name>/`
+* DE‑3 outputs MUST coexist with DE‑2 outputs under the same dataset directory.
+* Do not introduce a new storage layer.
+* Do not overwrite DE‑2 snapshot files.
 
 ## Scope
 
-Parse DE-2 snapshot JSONL files and write bronze document records for the supported datasets:
-
-* VietMed-Sum
-* ViHealthQA
-
-Use only schema classes already defined in `src/mnc/schemas/` for both input validation and output validation.
-
-This task is a light structural transformation only.
+* Read DE‑2 snapshot JSONL files.
+* Construct document‑level records using schemas from `src/mnc/schemas/`.
+* Perform light structural validation only.
 
 ## Non-goals
 
-The following are explicitly out of scope for DE-3:
+* No normalization.
+* No lowercasing.
+* No removal of Vietnamese diacritics.
+* No sentence or phrase segmentation.
+* No retrieval view construction.
+* No mention extraction.
+* No ontology linking.
+* No label generation.
 
-* Text normalization
-* Lowercasing
-* Vietnamese diacritic removal
-* Sentence or phrase segmentation
-* Mention extraction
-* Abbreviation expansion
-* Ontology linking
-* Candidate generation
-* Silver label construction
-* Deduplication across datasets
-* Data quality repair beyond light structural validation
+These belong to DC‑1 or later.
 
-Notes from the draft such as `norm_text`, `retrieval_text`, and segmentation belong to DC-1, not DE-3.
+## Input
 
-## Input contract
+* DE‑2 bronze snapshot records.
+* Validated against existing snapshot schema in `src/mnc/schemas/`.
 
-Read only DE-2 outputs.
+## Output
 
-The input records must be validated against the existing snapshot schema in `src/mnc/schemas/`. Do not redefine a parallel input model.
+* Bronze document records validating against `DocumentRecord` (or the existing bronze document schema in `src/mnc/schemas/`).
 
-Expected input source:
+## Document construction rules
 
-* One JSONL file per dataset split produced by DE-2
-* One manifest file per dataset produced by DE-2
+General rules:
 
-Expected input semantics:
-
-* Source-faithful snapshot
-* Original dataset fields preserved in `payload`
-* Stable `source_record_id`
-* Split-level lineage preserved
-
-## Output contract
-
-Write only records that validate against the existing bronze document schema in `src/mnc/schemas/`.
-
-Do not add new schema fields for this task unless the current schema package truly lacks a bronze document model. If a new schema is unavoidable, add it under `src/mnc/schemas/` and keep it minimal.
-
-The output record must remain source-faithful and preserve provenance.
-
-## Bronze mapping rules
-
-### Common rules
-
-For every valid input snapshot record:
-
-* `source` must be the canonical dataset name from the input schema.
-* `source_record_id` must be carried over unchanged from DE-2.
-* `split` must be carried over unchanged from DE-2.
-* `language` must be copied from input if present.
-* `payload` must preserve the original source fields required by the dataset.
-* `created_at` must be set once per run and reused for all records in that run.
-* `doc_id` must be deterministic and stable across reruns.
-
-Do not mutate source field values except for safe string coercion needed to satisfy the schema.
+* One input snapshot record → one document.
+* doc\_id must be deterministic and stable.
+* source\_record\_id must be preserved.
+* split must be preserved.
+* created\_at must be injected once per run.
 
 ### VietMed-Sum
 
-Input payload fields expected from DE-2:
+Dataset: [leduckhai/VietMed-Sum](https://huggingface.co/datasets/leduckhai/VietMed-Sum)
 
-* `transcript`
-* `summary`
+Input payload fields:
 
-Output mapping:
+* transcript
+* summary
 
-* `raw_text = payload["transcript"]`
-* `payload` must preserve both `transcript` and `summary`
-* `doc_id = "vietmed-sum:{source_record_id}"`
+Mapping:
 
-Validation rules:
+* raw\_text = transcript
+* payload retains transcript and summary
+* doc\_id = "vietmed-sum:{source\_record\_id}"
 
-* `transcript` must be a non-empty string
-* `summary` must be a string
-* reject the record if required fields are missing or invalid
+Validation:
+
+* transcript must be non‑empty string
+* summary must be string
 
 ### ViHealthQA
 
-Input payload fields expected from DE-2:
+Dataset: [tarudesu/ViHealthQA](https://huggingface.co/datasets/tarudesu/ViHealthQA)
 
-* `id`
-* `question`
-* `answer`
-* `link`
+Input payload fields:
 
-Output mapping:
+* question
+* answer
+* link
+* id
 
-* `raw_text = question + "\n" + answer`
-* `payload` must preserve `question`, `answer`, and `link`
-* preserve `id` if the bronze schema supports it via `payload`
-* `doc_id = "vihealthqa:{split}:{source_record_id}"`
+Mapping:
 
-Validation rules:
+* raw\_text = question + "\n" + answer
+* payload retains question, answer, link
+* doc\_id = "vihealthqa:{split}:{source\_record\_id}"
 
-* `question` must be a non-empty string
-* `answer` must be a non-empty string
-* `link` may be empty or null
-* reject the record if required fields are missing or invalid
+Validation:
 
-## Validation policy
-
-Apply only light validation.
-
-A record is valid if:
-
-* it passes input schema validation
-* required dataset-specific payload fields exist
-* required text fields are strings
-* required text fields are non-empty where specified
-* the output bronze record passes output schema validation
-
-Fail fast on malformed files.
-
-Skip invalid records and log them to an error file with enough context for debugging.
+* question non‑empty string
+* answer non‑empty string
 
 ## Output layout
 
-Use a separate output root from DE-2 to avoid mixing snapshot artifacts with parsed bronze documents.
+Under the existing bronze root:
 
-Recommended layout:
+* DE‑2 snapshot files remain untouched.
+* DE‑3 writes parsed document files using a distinct, explicit naming convention, for example:
+  * `<split>.docs.jsonl`
+  * or `documents/<split>.jsonl` if such subpattern already exists.
 
-* `data/bronze_docs/vietmed-sum/train_whole.jsonl`
-* `data/bronze_docs/vietmed-sum/dev_whole.jsonl`
-* `data/bronze_docs/vietmed-sum/test_whole.jsonl`
-* `data/bronze_docs/vietmed-sum/manifest.json`
-* `data/bronze_docs/vietmed-sum/errors.jsonl`
-* `data/bronze_docs/vihealthqa/train.jsonl`
-* `data/bronze_docs/vihealthqa/validation.jsonl`
-* `data/bronze_docs/vihealthqa/test.jsonl`
-* `data/bronze_docs/vihealthqa/manifest.json`
-* `data/bronze_docs/vihealthqa/errors.jsonl`
+Do not invent a new layer name.
 
-If the repository already has a standardized bronze parsed path, use that path instead. Do not overwrite DE-2 snapshot files in place.
+## Manifest
 
-## Manifest requirements
+Write a dataset‑level manifest containing:
 
-Write one manifest per dataset.
+* dataset
+* input\_splits
+* output\_splits
+* record\_count\_by\_split
+* failed\_count\_by\_split
+* created\_at
 
-Minimum manifest fields:
-
-* `dataset`
-* `input_root`
-* `output_root`
-* `written_splits`
-* `record_count_by_split`
-* `failed_count_by_split`
-* `total_rows`
-* `successful_rows`
-* `failed_rows`
-* `created_at`
-
-If a manifest schema already exists in `src/mnc/schemas/`, use it. Otherwise reuse the current internal manifest model already used by dataset pipeline code.
-
-## Implementation requirements
-
-Keep the implementation small, deterministic, and dataset-aware.
-
-Recommended structure:
-
-* `src/mnc/datasets/de3_parse.py`
-* `src/mnc/datasets/de3_cli.py`
-
-Implementation rules:
-
-* Reuse existing dataset adapter patterns where practical.
-* Read DE-2 JSONL records locally only.
-* Validate input and output using Pydantic models from `src/mnc/schemas/`.
-* Write JSONL outputs with UTF-8 encoding.
-* Keep record order stable within each split.
-* Use deterministic `doc_id` construction only.
-* Do not call the network.
-* Do not introduce heavy preprocessing logic.
+Reuse an existing manifest schema if one exists.
 
 ## Error handling
 
-Write invalid records to `errors.jsonl`.
-
-Each error entry should include:
-
-* `dataset`
-* `split`
-* `source_record_id`
-* `error`
-
-The pipeline must continue after record-level validation failures, but must stop on unreadable input files or schema import failures.
+* Invalid records are skipped.
+* Write error entries to `errors.jsonl`.
+* Pipeline must continue after record‑level failures.
 
 ## Acceptance criteria
 
-The task is complete when all conditions below are true:
-
-* DE-3 reads DE-2 snapshot JSONL files for both datasets.
-* Every written bronze record validates against the output schema in `src/mnc/schemas/`.
-* VietMed-Sum bronze records use `transcript` as `raw_text`.
-* ViHealthQA bronze records use `question + "\n" + answer` as `raw_text`.
-* Source-faithful fields are preserved in `payload`.
-* Split names remain unchanged from DE-2.
-* A manifest is written for each dataset.
-* An error log is written for each dataset.
-* No normalization, segmentation, or mention extraction is applied.
+* All output records validate against document schema.
+* DE‑2 artifacts remain intact.
+* No semantic transformation is applied.
+* doc\_id is deterministic.
+* Bronze directory layout remains `data/bronze/<dataset_name>`.
 
 ## Minimal pytest coverage
 
-Unit tests are mandatory and must use `pytest`.
+Required:
 
-Keep tests small and local. No network calls. No large fixtures.
+* VietMed‑Sum happy path
+* ViHealthQA happy path
+* Invalid record error logging
+* Schema validation failure
+* Deterministic doc\_id
+* Manifest generation
 
-Required tests:
-
-* one happy-path test for VietMed-Sum parsing
-* one happy-path test for ViHealthQA parsing
-* one invalid payload test that produces an error entry
-* one schema validation test for output records
-* one deterministic `doc_id` test
-* one manifest generation test
-
-## Test expectations
-
-Each test should verify only the task scope.
-
-Minimum assertions:
-
-* correct output filenames per split
-* correct `raw_text` mapping for each dataset
-* preserved source fields in `payload`
-* stable `doc_id`
-* invalid records are excluded from output and written to `errors.jsonl`
-* manifest counts match written records
-
-## Suggested deliverables
-
-* `src/mnc/datasets/de3_parse.py`
-* `src/mnc/datasets/de3_cli.py`
-* `tests/datasets/test_de3_parse_vietmed_sum.py`
-* `tests/datasets/test_de3_parse_vihealthqa.py`
-* `tests/datasets/test_de3_parse_errors.py`
-* `tests/datasets/test_de3_parse_manifest.py`
-
-## One implementation rule
-
-If a field is not defined in `src/mnc/schemas/`, do not invent it for DE-3.
+All tests local, no network.
