@@ -7,6 +7,24 @@ run = "uv run -m mnc.ontology.crawler data/bronze/kcb_vn_icd10/"
 [tasks."ontology:report"]
 run = "uv run -m mnc.ontology.reporter data/bronze/kcb_vn_icd10/"
 
+[tasks."datasets:ingest"]
+run = "uv run -m mnc.datasets.ingest --all"
+
+[tasks."datasets:ingest-vietmed-sum"]
+run = "uv run -m mnc.datasets.ingest --dataset vietmed-sum"
+
+[tasks."datasets:ingest-vihealthqa"]
+run = "uv run -m mnc.datasets.ingest --dataset vihealthqa"
+
+[tasks."datasets:parse"]
+run = "uv run -m mnc.datasets.parse --all"
+
+[tasks."datasets:parse-vietmed-sum"]
+run = "uv run -m mnc.datasets.parse --dataset vietmed-sum"
+
+[tasks."datasets:parse-vihealthqa"]
+run = "uv run -m mnc.datasets.parse --dataset vihealthqa"
+
 [tools]
 prek = "latest"
 uv = "latest"
