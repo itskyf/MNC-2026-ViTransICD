@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
+from pyrate_limiter import Duration, Limiter, Rate
 from tenacity import (
     AsyncRetrying,
     retry_if_exception_type,
@@ -43,11 +44,33 @@ _CHILD_FIELDS = ("children", "childs", "subItems", "items")
 # HTTP status code thresholds.
 _HTTP_OK = 200
 _HTTP_NOT_FOUND = 404
+_HTTP_CLIENT_ERROR = 400
 _HTTP_SERVER_ERROR = 500
+_HTTP_RATE_LIMITED = 429
+
+_DEFAULT_RPS = 3
 
 
 class CrawlError(Exception):
     """Raised when a request exhausts all retries."""
+
+
+def _reap_task(task: asyncio.Task[None]) -> None:
+    """Retrieve and log a completed task's exception."""
+    try:
+        exc = task.exception()
+    except asyncio.CancelledError:
+        return
+    if exc is not None and not isinstance(exc, CrawlError):
+        logger.error("Task error: %s", exc)
+
+
+def _reap_done(tasks: set[asyncio.Task[None]]) -> None:
+    """Remove and reap all completed tasks from the set."""
+    done = {t for t in tasks if t.done()}
+    for t in done:
+        tasks.discard(t)
+        _reap_task(t)
 
 
 class ICDCrawler:
@@ -58,14 +81,16 @@ class ICDCrawler:
         output_dir: Directory for bronze raw output and metadata files.
         concurrency: Maximum number of concurrent HTTP requests.
         limit: Optional cap on total requests. ``None`` means unlimited.
+        rps: Maximum requests per second (rate limit).
     """
 
     def __init__(
         self,
-        base_url: str = BASE_URL,
-        output_dir: Path | str = "data/bronze/kcb_vn_icd10",
-        concurrency: int = 5,
-        limit: int | None = None,
+        base_url: str,
+        output_dir: Path | str,
+        concurrency: int,
+        limit: int | None,
+        rps: int,
     ) -> None:
         """Initialise crawler state and concurrency primitives."""
         self.base_url = base_url.rstrip("/")
@@ -74,6 +99,7 @@ class ICDCrawler:
         self.limit = limit
 
         self._semaphore = asyncio.Semaphore(concurrency)
+        self._limiter = Limiter(Rate(max(1, rps), Duration.SECOND))
         self._request_count = 0
         self._manifest: list[ManifestEntry] = []
         self._errors: list[ErrorEntry] = []
@@ -159,44 +185,63 @@ class ICDCrawler:
         """Drain the work queue with bounded concurrency."""
         tasks: set[asyncio.Task[None]] = set()
 
-        while True:
-            if self.limit is not None and self._request_count >= self.limit:
-                break
-
-            # Reap completed tasks.
-            done = {t for t in tasks if t.done()}
-            for t in done:
-                tasks.discard(t)
-                exc = t.exception()
-                if exc and not isinstance(exc, (CrawlError, asyncio.CancelledError)):
-                    logger.error("Task error: %s", exc)
-
-            # Fetch next work item.
-            try:
-                item = self._queue.get_nowait()
-            except asyncio.QueueEmpty:
-                if not tasks:
+        try:
+            while True:
+                if self.limit is not None and self._request_count >= self.limit:
                     break
-                _, tasks = await asyncio.wait(
-                    tasks,
-                    return_when=asyncio.FIRST_COMPLETED,
+
+                item = await self._next_item(tasks)
+                if item is None:
+                    break
+
+                lang, kind, node_id = item
+                tasks.add(
+                    asyncio.create_task(
+                        self._bounded_process(client, lang, kind, node_id),
+                    ),
                 )
-                continue
+        finally:
+            if tasks:
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                for result in results:
+                    if isinstance(result, BaseException) and not isinstance(
+                        result,
+                        (CrawlError, asyncio.CancelledError),
+                    ):
+                        logger.error("Task error: %s", result)
 
-            lang, kind, node_id = item
+    async def _next_item(
+        self,
+        tasks: set[asyncio.Task[None]],
+    ) -> tuple[str, str, str] | None:
+        """Return next queue item, reaping done tasks and waiting as needed."""
+        while True:
+            _reap_done(tasks)
+            try:
+                return self._queue.get_nowait()
+            except asyncio.QueueEmpty:
+                pass
+            if not tasks:
+                return None
+            completed, pending = await asyncio.wait(
+                tasks,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            for t in completed:
+                _reap_task(t)
+            tasks.clear()
+            tasks.update(pending)
 
-            async def _bounded(
-                _lang: str = lang,
-                _kind: str = kind,
-                _nid: str = node_id,
-            ) -> None:
-                async with self._semaphore:
-                    await self._process_item(client, _lang, _kind, _nid)
-
-            tasks.add(asyncio.create_task(_bounded()))
-
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
+    async def _bounded_process(
+        self,
+        client: httpx.AsyncClient,
+        lang: str,
+        kind: str,
+        node_id: str,
+    ) -> None:
+        """Process a single item, bounded by the concurrency semaphore."""
+        async with self._semaphore:
+            await self._process_item(client, lang, kind, node_id)
 
     # ------------------------------------------------------------------
     # Item processing
@@ -321,6 +366,7 @@ class ICDCrawler:
             url = f"/{candidate}/{kind}"
             params = {"id": node_id, "lang": lang}
             try:
+                await self._limiter.try_acquire_async("probe")
                 resp = await client.get(url, params=params)
                 if resp.status_code == _HTTP_OK:
                     self._endpoint_map[kind] = candidate
@@ -354,19 +400,25 @@ class ICDCrawler:
             reraise=True,
         ):
             with attempt:
+                await self._limiter.try_acquire_async("fetch")
                 resp = await client.get(url, params=params)
                 if resp.status_code >= _HTTP_SERVER_ERROR:
                     msg = f"Server error {resp.status_code}"
                     raise httpx.RequestError(msg, request=resp.request)
+                if resp.status_code == _HTTP_RATE_LIMITED:
+                    msg = f"Rate limited (429): {url}"
+                    raise httpx.RequestError(msg, request=resp.request)
                 if resp.status_code == _HTTP_NOT_FOUND:
                     msg = f"404 Not Found: {url} params={params}"
                     raise CrawlError(msg)
-                resp.raise_for_status()
+                if resp.status_code >= _HTTP_CLIENT_ERROR:
+                    msg = f"Client error {resp.status_code}: {url} params={params}"
+                    raise CrawlError(msg)
                 headers = dict(resp.headers)
                 return resp.json(), resp.status_code, headers
 
-        msg = "Retry exhausted"
-        raise CrawlError(msg)  # pragma: no cover
+        exhausted = "Retry exhausted"
+        raise CrawlError(exhausted)  # pragma: no cover
 
     # ------------------------------------------------------------------
     # Child extraction
@@ -485,6 +537,12 @@ def main() -> None:
         help="Max concurrent requests (default: 5)",
     )
     parser.add_argument(
+        "--rps",
+        type=int,
+        default=_DEFAULT_RPS,
+        help=f"Max requests per second (default: {_DEFAULT_RPS})",
+    )
+    parser.add_argument(
         "--base-url",
         default=BASE_URL,
         help=f"API base URL (default: {BASE_URL})",
@@ -501,6 +559,7 @@ def main() -> None:
         output_dir=args.output_dir,
         concurrency=args.concurrency,
         limit=args.limit,
+        rps=args.rps,
     )
     asyncio.run(crawler.crawl())
 
