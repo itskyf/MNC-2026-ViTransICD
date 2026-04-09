@@ -1,5 +1,6 @@
 """Tests for the SEA-LION ModernBERT encoder backbone."""
 
+import typing
 from datetime import UTC, datetime
 
 import pytest
@@ -135,6 +136,6 @@ def test_empty_input_raises(encoder: SeaLionEncoder) -> None:
 
 # 10. Invalid item type raises TypeError
 def test_invalid_type_raises(encoder: SeaLionEncoder) -> None:
-    bad: list[DocumentRecord] = ["not a document"]  # pyright: ignore[reportAssignmentType]
+    bad = typing.cast("list[DocumentRecord]", ["not a document"])
     with pytest.raises(TypeError, match="expected DocumentRecord"):
         encoder.encode_documents(bad)

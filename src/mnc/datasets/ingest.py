@@ -10,9 +10,10 @@ Usage::
 from __future__ import annotations
 
 import argparse
-import sys
+import logging
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Protocol, cast
 
 import polars as pl
 from huggingface_hub import hf_hub_download
@@ -21,6 +22,11 @@ from pydantic import ValidationError
 from mnc.datasets._io import now_utc, write_jsonl, write_manifest
 from mnc.schemas.manifest import BronzeManifest
 from mnc.schemas.snapshot import SnapshotRecord
+
+if TYPE_CHECKING:
+    from mnc.schemas.document import JsonValue
+
+logger = logging.getLogger(__name__)
 
 INGEST_VERSION = "1.0.0"
 
@@ -50,27 +56,20 @@ _VIHEALTHQA_URL = "https://huggingface.co/datasets/tarudesu/ViHealthQA"
 # ---------------------------------------------------------------------------
 
 
+class _FileReader(Protocol):
+    def __call__(self, source: str | Path) -> pl.DataFrame: ...
+
+
+@dataclass(frozen=True)
 class IngestConfig:
     """Configuration for one dataset's ingest pipeline."""
 
-    __slots__ = ("files", "hub_id", "id_column", "reader", "source_format", "url")
-
-    def __init__(  # noqa: PLR0913
-        self,
-        hub_id: str,
-        files: dict[str, str],
-        url: str,
-        source_format: str,
-        reader: Any,  # noqa: ANN401
-        id_column: str | None = None,
-    ) -> None:
-        """Initialize ingest configuration."""
-        self.hub_id = hub_id
-        self.files = files
-        self.url = url
-        self.source_format = source_format
-        self.reader = reader
-        self.id_column = id_column
+    hub_id: str
+    files: dict[str, str]
+    url: str
+    source_format: str
+    reader: _FileReader
+    id_column: str | None = None
 
 
 def _ingest_config() -> dict[str, IngestConfig]:
@@ -94,16 +93,22 @@ def _ingest_config() -> dict[str, IngestConfig]:
     }
 
 
-def snapshots_from_df(  # noqa: PLR0913
+@dataclass(frozen=True)
+class _SnapshotParams:
+    """Parameters for snapshot record creation."""
+
+    dataset_name: str
+    split: str
+    source_format: str
+    source_path: str
+    source_url: str | None = None
+    language: str | None = None
+    id_column: str | None = None
+
+
+def snapshots_from_df(
     df: pl.DataFrame,
-    *,
-    dataset_name: str,
-    split: str,
-    source_format: str,
-    source_path: str,
-    source_url: str | None = None,
-    language: str | None = None,
-    id_column: str | None = None,
+    params: _SnapshotParams,
 ) -> tuple[list[SnapshotRecord], int]:
     """Create snapshot records from a polars DataFrame.
 
@@ -113,20 +118,20 @@ def snapshots_from_df(  # noqa: PLR0913
     failed = 0
     for idx in range(df.height):
         row = df.row(idx, named=True)
-        payload = dict(row)
-        source_record_id = str(row[id_column]) if id_column else str(idx)
+        payload = cast("dict[str, JsonValue]", dict(row))
+        source_record_id = str(row[params.id_column]) if params.id_column else str(idx)
         try:
             records.append(
                 SnapshotRecord(
-                    dataset_name=dataset_name,
-                    source_split=split,
+                    dataset_name=params.dataset_name,
+                    source_split=params.split,
                     source_record_id=source_record_id,
-                    payload=payload,  # type: ignore[arg-type]
-                    source_format=source_format,
-                    source_path=source_path,
+                    payload=payload,
+                    source_format=params.source_format,
+                    source_path=params.source_path,
                     ingest_version=INGEST_VERSION,
-                    source_url=source_url,
-                    language=language,
+                    source_url=params.source_url,
+                    language=params.language,
                 ),
             )
         except ValidationError:
@@ -158,13 +163,15 @@ def ingest_dataset(dataset_name: str, bronze_dir: Path) -> BronzeManifest:
         df = cfg.reader(local)
         records, failed = snapshots_from_df(
             df,
-            dataset_name=dataset_name,
-            split=split,
-            source_format=cfg.source_format,
-            source_path=hf_path,
-            source_url=cfg.url,
-            language="vi",
-            id_column=cfg.id_column,
+            _SnapshotParams(
+                dataset_name=dataset_name,
+                split=split,
+                source_format=cfg.source_format,
+                source_path=hf_path,
+                source_url=cfg.url,
+                language="vi",
+                id_column=cfg.id_column,
+            ),
         )
         write_jsonl(records, out / f"{split}.jsonl")
         record_counts[split] = len(records)
@@ -218,14 +225,14 @@ def main(argv: list[str] | None = None) -> None:
 
     names = list(_DATASETS) if args.ingest_all else [args.dataset]
     for name in names:
-        print(f"Ingesting {name}...", file=sys.stderr)  # noqa: T201
+        logger.info("Ingesting %s...", name)
         manifest = ingest_dataset(name, args.output)
-        print(  # noqa: T201
-            f"  {manifest.record_count_by_split}",
-            file=sys.stderr,
+        logger.info(
+            "  %s",
+            manifest.record_count_by_split,
         )
         total = sum(manifest.record_count_by_split.values())
-        print(f"  Total: {total} records", file=sys.stderr)  # noqa: T201
+        logger.info("  Total: %d records", total)
 
 
 if __name__ == "__main__":

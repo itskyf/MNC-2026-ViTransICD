@@ -11,8 +11,9 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
+import logging
 from pathlib import Path
+from typing import Protocol
 
 from pydantic import ValidationError
 
@@ -20,6 +21,8 @@ from mnc.datasets._io import now_utc, write_jsonl, write_manifest
 from mnc.schemas.document import DocumentRecord
 from mnc.schemas.manifest import BronzeManifest
 from mnc.schemas.snapshot import SnapshotRecord
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Per-dataset document constructors
@@ -79,7 +82,12 @@ def _vihealthqa_doc(snapshot: SnapshotRecord) -> DocumentRecord:
 # Core parsing pipeline
 # ---------------------------------------------------------------------------
 
-_PARSERS: dict[str, object] = {
+
+class _DocParser(Protocol):
+    def __call__(self, snapshot: SnapshotRecord) -> DocumentRecord: ...
+
+
+_PARSERS: dict[str, _DocParser] = {
     "vietmed-sum": _vietmed_sum_doc,
     "vihealthqa": _vihealthqa_doc,
 }
@@ -91,7 +99,7 @@ def parse_dataset(dataset_name: str, bronze_dir: Path) -> BronzeManifest:
         msg = f"Unknown dataset: {dataset_name}"
         raise ValueError(msg)
 
-    parser = _PARSERS[dataset_name]  # type: ignore[index]
+    parser = _PARSERS[dataset_name]
     snapshot_dir = bronze_dir / dataset_name / "snapshots"
     document_dir = bronze_dir / dataset_name / "documents"
     document_dir.mkdir(parents=True, exist_ok=True)
@@ -115,7 +123,7 @@ def parse_dataset(dataset_name: str, bronze_dir: Path) -> BronzeManifest:
                     continue
                 try:
                     snapshot = SnapshotRecord.model_validate_json(stripped)
-                    doc = parser(snapshot)  # type: ignore[operator]
+                    doc = parser(snapshot)
                     docs.append(doc)
                 except (ValueError, TypeError, ValidationError) as exc:
                     failed += 1
@@ -185,14 +193,14 @@ def main(argv: list[str] | None = None) -> None:
 
     names = list(_DATASETS) if args.parse_all else [args.dataset]
     for name in names:
-        print(f"Parsing {name}...", file=sys.stderr)  # noqa: T201
+        logger.info("Parsing %s...", name)
         manifest = parse_dataset(name, args.bronze_dir)
-        print(  # noqa: T201
-            f"  {manifest.record_count_by_split}",
-            file=sys.stderr,
+        logger.info(
+            "  %s",
+            manifest.record_count_by_split,
         )
         total = sum(manifest.record_count_by_split.values())
-        print(f"  Total: {total} documents", file=sys.stderr)  # noqa: T201
+        logger.info("  Total: %d documents", total)
 
 
 if __name__ == "__main__":

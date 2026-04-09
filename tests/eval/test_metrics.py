@@ -10,16 +10,21 @@ import torch
 
 from mnc.eval.metrics import EvalMetricConfig, MultilabelEvaluator
 
+_GRANULARITY = "chapter"
 
-def _config(**overrides: float | str) -> EvalMetricConfig:
+
+def _config(
+    *,
+    label_granularity: str = _GRANULARITY,
+    num_labels: int = 4,
+    threshold: float = 0.5,
+) -> EvalMetricConfig:
     """Build an EvalMetricConfig with sensible test defaults."""
-    defaults: dict[str, float | int | str] = {
-        "label_granularity": "chapter",
-        "num_labels": 4,
-        "threshold": 0.5,
-    }
-    defaults.update(overrides)
-    return EvalMetricConfig(**defaults)  # type: ignore[arg-type]
+    return EvalMetricConfig(
+        label_granularity=label_granularity,
+        num_labels=num_labels,
+        threshold=threshold,
+    )
 
 
 # -- Perfect predictions -------------------------------------------------------

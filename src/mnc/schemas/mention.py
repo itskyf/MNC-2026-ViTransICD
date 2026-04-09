@@ -1,13 +1,18 @@
 """Mention record schema for extraction and evidence tracking."""
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING, Literal
+from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-if TYPE_CHECKING:
-    from datetime import datetime
+MentionType = Literal[
+    "disease",
+    "symptom",
+    "diagnosis",
+    "procedure",
+    "abbreviation",
+    "other",
+]
 
 
 class MentionRecord(BaseModel):
@@ -22,14 +27,7 @@ class MentionRecord(BaseModel):
     doc_id: str
     text: str
     normalized_text: str
-    mention_type: Literal[
-        "disease",
-        "symptom",
-        "diagnosis",
-        "procedure",
-        "abbreviation",
-        "other",
-    ]
+    mention_type: MentionType
     char_start: int
     char_end: int
     confidence: float | None = None
