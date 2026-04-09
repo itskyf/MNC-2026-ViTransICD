@@ -1,4 +1,4 @@
-# Technical Specification: MA-1 SEA-LION Backbone (Dummy Data)
+# MA-1: SEA-LION Backbone (Dummy Data)
 
 ## 1. Objective
 

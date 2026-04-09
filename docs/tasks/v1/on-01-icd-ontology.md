@@ -1,4 +1,4 @@
-# ICD-10 Ontology by icd.kcb.vn
+# ON-1: ICD-10 Ontology by icd.kcb.vn
 
 Task: Build a two-part data pipeline (Ingestion + Analytics) for the official Vietnamese ICD-10 ontology used by the KCB/MoH browser.
 

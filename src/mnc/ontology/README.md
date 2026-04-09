@@ -14,16 +14,16 @@ Recursively crawls the KCB ICD-10 API with **dynamic endpoint discovery** (probi
 
 ```bash
 # Full crawl (unlimited)
-uv run python -m src.mnc.ontology.crawler
+uv run python -m mnc.ontology.crawler
 
 # Crawl with a request limit
-uv run python -m src.mnc.ontology.crawler --limit 30
+uv run python -m mnc.ontology.crawler --limit 30
 
 # Custom output directory
-uv run python -m src.mnc.ontology.crawler path/to/output --limit 100
+uv run python -m mnc.ontology.crawler path/to/output --limit 100
 
 # Adjust concurrency
-uv run python -m src.mnc.ontology.crawler --concurrency 3
+uv run python -m mnc.ontology.crawler --concurrency 3
 ```
 
 ### Key features
