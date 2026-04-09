@@ -2,7 +2,9 @@ fix = true
 
 [lint]
 select = ["ALL"]
-ignore = []
+ignore = [
+  "TRY003",  # raise-vanilla-args
+]
 
 [lint.per-file-ignores]
 "tests/**/*.py" = [
