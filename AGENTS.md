@@ -11,7 +11,7 @@
 - Explicit Parameters: Use strict typing and avoid ad-hoc default values in function definitions (let the caller decide). When calling functions, pass explicit arguments and comment the rationale behind any specific values chosen.
 - Error Handling: Do not catch bare or broad exceptions (e.g., `except:` or `except Exception:`); always specify concrete error types.
 - Documentation & Logging: Use Google-style docstrings. Keep comments and logs concise, clear, and strictly essential.
-- DO NOT use `noqa`, `object`, `typing.Any`.
+- DO NOT use `noqa`, `object`, `typing.Any`, `# type: ignore`.
 
 ## Agent Skills and Tools
 
