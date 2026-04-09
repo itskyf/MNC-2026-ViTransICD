@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import re
-import sys
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -20,6 +20,10 @@ from pydantic import ValidationError
 from mnc.datasets._io import now_utc, write_jsonl, write_manifest
 from mnc.schemas.manifest import BronzeManifest
 from mnc.schemas.mention import MentionRecord
+
+logger = logging.getLogger(__name__)
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Compiled patterns for definitional extraction
@@ -306,13 +310,15 @@ def main(argv: list[str] | None = None) -> None:
 
     names = list(_DATASETS) if args.run_all else [args.dataset]
     for name in names:
-        print(f"Normalizing abbreviations for {name}...", file=sys.stderr)  # noqa: T201
+        logger.info("Normalizing abbreviations for %s...", name)
         manifest = abbrev_dataset(name, args.silver_dir)
         total = sum(manifest.record_count_by_split.values())
         failed = sum(manifest.failed_count_by_split.values())
-        print(  # noqa: T201
-            f"  {manifest.record_count_by_split} ({total} mentions, {failed} failed)",
-            file=sys.stderr,
+        logger.info(
+            "  %s (%d mentions, %d failed)",
+            manifest.record_count_by_split,
+            total,
+            failed,
         )
 
 

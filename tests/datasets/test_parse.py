@@ -80,7 +80,7 @@ class TestVietMedSumDoc:
 
     def test_none_transcript_raises(self) -> None:
         snap = _vietmed_snapshot()
-        snap.payload["transcript"] = None  # type: ignore[assignment]
+        snap.payload = {**snap.payload, "transcript": None}
         with pytest.raises(ValueError, match="transcript"):
             _vietmed_sum_doc(snap)
 

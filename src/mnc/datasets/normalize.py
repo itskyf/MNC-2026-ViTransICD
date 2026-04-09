@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -29,6 +29,8 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from mnc.schemas.mention import MentionRecord
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Sentence segmentation
@@ -325,13 +327,15 @@ def main(argv: list[str] | None = None) -> None:
 
     names = list(_DATASETS) if args.run_all else [args.dataset]
     for name in names:
-        print(f"Normalizing {name}...", file=sys.stderr)  # noqa: T201
+        logger.info("Normalizing %s...", name)
         doc_m, _, _ = normalize_dataset(name, args.bronze_dir, args.silver_dir)
         total = sum(doc_m.record_count_by_split.values())
         failed = sum(doc_m.failed_count_by_split.values())
-        print(  # noqa: T201
-            f"  {doc_m.record_count_by_split} ({total} docs, {failed} failed)",
-            file=sys.stderr,
+        logger.info(
+            "  %s (%d docs, %d failed)",
+            doc_m.record_count_by_split,
+            total,
+            failed,
         )
 
 

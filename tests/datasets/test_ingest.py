@@ -1,15 +1,20 @@
 """Tests for DE-2: Snapshot public datasets to bronze."""
 
+from __future__ import annotations
+
 import json
 from datetime import UTC, datetime
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import polars as pl
 import pytest
 from pydantic import ValidationError
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 from mnc.datasets._io import iter_jsonl, write_jsonl, write_manifest
-from mnc.datasets.ingest import INGEST_VERSION, snapshots_from_df
+from mnc.datasets.ingest import INGEST_VERSION, _SnapshotParams, snapshots_from_df
 from mnc.schemas.manifest import BronzeManifest
 from mnc.schemas.snapshot import SnapshotRecord
 
@@ -47,15 +52,17 @@ class TestSnapshotSchema:
 
     def test_extra_fields_rejected(self) -> None:
         with pytest.raises(ValidationError):
-            SnapshotRecord(
-                dataset_name="test",
-                source_split="train",
-                source_record_id="0",
-                payload={},
-                source_format="parquet",
-                source_path="x.parquet",
-                ingest_version="1.0",
-                unknown_field=True,  # type: ignore[call-arg]
+            SnapshotRecord.model_validate(
+                {
+                    "dataset_name": "test",
+                    "source_split": "train",
+                    "source_record_id": "0",
+                    "payload": {},
+                    "source_format": "parquet",
+                    "source_path": "x.parquet",
+                    "ingest_version": "1.0",
+                    "unknown_field": True,
+                },
             )
 
     def test_optional_fields_default_none(self) -> None:
@@ -85,12 +92,14 @@ class TestSnapshotsFromDf:
         )
         records, failed = snapshots_from_df(
             df,
-            dataset_name="vietmed-sum",
-            split="train",
-            source_format="parquet",
-            source_path="data/train.train_whole-00000-of-00001.parquet",
-            source_url="https://huggingface.co/datasets/leduckhai/VietMed-Sum",
-            language="vi",
+            _SnapshotParams(
+                dataset_name="vietmed-sum",
+                split="train",
+                source_format="parquet",
+                source_path="data/train.train_whole-00000-of-00001.parquet",
+                source_url="https://huggingface.co/datasets/leduckhai/VietMed-Sum",
+                language="vi",
+            ),
         )
         assert failed == 0
         assert len(records) == 2
@@ -109,13 +118,15 @@ class TestSnapshotsFromDf:
         )
         records, failed = snapshots_from_df(
             df,
-            dataset_name="vihealthqa",
-            split="train",
-            source_format="csv",
-            source_path="train.csv",
-            source_url="https://huggingface.co/datasets/tarudesu/ViHealthQA",
-            language="vi",
-            id_column="id",
+            _SnapshotParams(
+                dataset_name="vihealthqa",
+                split="train",
+                source_format="csv",
+                source_path="train.csv",
+                source_url="https://huggingface.co/datasets/tarudesu/ViHealthQA",
+                language="vi",
+                id_column="id",
+            ),
         )
         assert failed == 0
         assert len(records) == 2
@@ -126,10 +137,12 @@ class TestSnapshotsFromDf:
         df = pl.DataFrame({"transcript": [], "summary": []})
         records, failed = snapshots_from_df(
             df,
-            dataset_name="vietmed-sum",
-            split="train",
-            source_format="parquet",
-            source_path="x.parquet",
+            _SnapshotParams(
+                dataset_name="vietmed-sum",
+                split="train",
+                source_format="parquet",
+                source_path="x.parquet",
+            ),
         )
         assert len(records) == 0
         assert failed == 0

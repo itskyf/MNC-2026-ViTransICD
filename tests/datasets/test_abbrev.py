@@ -13,7 +13,7 @@ from mnc.datasets.abbrev import (
     normalize_abbreviations,
 )
 from mnc.schemas.manifest import BronzeManifest
-from mnc.schemas.mention import MentionRecord
+from mnc.schemas.mention import MentionRecord, MentionType
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -25,7 +25,7 @@ def _ts() -> datetime:
 
 def _mention(
     text: str,
-    mention_type: str = "abbreviation",
+    mention_type: MentionType = "abbreviation",
     doc_id: str = "doc:1",
     char_start: int = 0,
     char_end: int = 3,
@@ -35,7 +35,7 @@ def _mention(
         doc_id=doc_id,
         text=text,
         normalized_text=text.lower(),
-        mention_type=mention_type,  # type: ignore[arg-type]
+        mention_type=mention_type,
         char_start=char_start,
         char_end=char_end,
         confidence=None,
