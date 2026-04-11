@@ -305,6 +305,13 @@ Minimum extraction strategy:
 * keep the longest non-overlapping span when two candidates share the same start
 * never emit zero-length spans
 
+Boundary trimming rules:
+
+* collapse consecutive duplicate words (e.g. "bệnh bệnh" → "bệnh")
+* trim trailing Vietnamese function words (up to 3 rounds)
+* strip trailing single-character noise from speech transcripts
+* maximum capture length: 25 characters for disease cues, 20 for symptom/diagnosis/procedure cues
+
 Mention normalization for DC-1:
 
 * normalize the extracted surface form with the same mention-level text normalization rules as document normalization

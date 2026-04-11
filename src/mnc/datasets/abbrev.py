@@ -24,8 +24,6 @@ from mnc.schemas.mention import MentionRecord
 
 logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)
-
 # ---------------------------------------------------------------------------
 # Compiled patterns for definitional extraction
 # ---------------------------------------------------------------------------

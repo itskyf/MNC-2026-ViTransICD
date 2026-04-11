@@ -87,13 +87,7 @@ Priority order:
 
 If ON-3 exclusion rules are available:
 
-* prune candidates whose matched evidence directly conflicts with explicit exclusion notes
-* pruning only removes candidates
-* pruning must never invent new candidates
-
-If ON-3 is unavailable:
-
-* skip pruning
+ON-3 exclusion is not applied in DC-3. DC-4 weak supervision handles exclude_note rules with mention_score-aware penalties, which avoids blanket removal of potentially valid candidates.
 
 ## Ranking and Merge Rules
 
@@ -114,6 +108,7 @@ Scoring policy:
 * normalized matches should score higher than fuzzy matches
 * fuzzy matches should score higher than retrieval matches when the lexical evidence is stronger
 * TF-IDF and BM25 scores must be normalized before writing
+* fuzzy lexical minimum score threshold: 0.75
 
 Recommended default top-k:
 
@@ -180,7 +175,6 @@ CLI arguments:
 * `--silver-dir`
 * `--ontology-path`
 * `--alias-path`
-* `--rules-path`
 
 ## Error Handling
 

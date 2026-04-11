@@ -188,11 +188,17 @@ class TestFuzzyMatches:
         result = _fuzzy_matches("bệnh tả", fuzzy_index)
         assert len(result) > 0
         assert result[0][0] == "A00"
-        assert result[0][1] > 0.5
+        assert result[0][1] >= 0.75
 
     def test_empty_query(self) -> None:
         result = _fuzzy_matches("", [("Bệnh tả", "A00")])
         assert result == []
+
+    def test_below_threshold_filtered(self) -> None:
+        """Dissimilar terms below 0.75 threshold are filtered out."""
+        fuzzy_index = [("viêm gan B", "B16")]
+        result = _fuzzy_matches("giun móc", fuzzy_index)
+        assert len(result) == 0
 
 
 # ---------------------------------------------------------------------------

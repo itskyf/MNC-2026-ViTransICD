@@ -30,7 +30,12 @@ logger = logging.getLogger(__name__)
 
 
 def _vietmed_sum_doc(snapshot: SnapshotRecord) -> DocumentRecord:
-    """Convert a VietMed-Sum snapshot to a DocumentRecord."""
+    """Convert a VietMed-Sum snapshot to a DocumentRecord.
+
+    ``raw_text`` concatenates transcript and summary so that downstream
+    mention extraction and BM25/TF-IDF retrieval can see disease names
+    that appear only in the summary.
+    """
     transcript = snapshot.payload.get("transcript")
     summary = snapshot.payload.get("summary")
 
@@ -45,7 +50,7 @@ def _vietmed_sum_doc(snapshot: SnapshotRecord) -> DocumentRecord:
         doc_id=f"vietmed-sum:{snapshot.source_record_id}",
         source="vietmed-sum",
         language="vi",
-        raw_text=transcript,
+        raw_text=f"{transcript}\n{summary}",
         source_record_id=snapshot.source_record_id,
         split=snapshot.source_split,
         payload={"transcript": transcript, "summary": summary},

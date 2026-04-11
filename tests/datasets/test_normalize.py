@@ -186,6 +186,57 @@ class TestExtractMentions:
         starts = [m.char_start for m in mentions]
         assert len(starts) == len(set(starts))  # no duplicate starts
 
+    def test_trailing_single_char_stripped(self) -> None:
+        """Trailing single-char noise from speech transcripts is removed."""
+        doc = _doc("Bệnh nhân bị táo bón rồi mất ổn định tư thế r")
+        mentions = extract_mentions(doc, _ts())
+        for m in mentions:
+            last_word = m.text.rstrip().split()[-1] if m.text.rstrip() else ""
+            assert len(last_word) > 1, f"Trailing single char not stripped: {m.text!r}"
+
+    def test_consecutive_duplicate_removed(self) -> None:
+        """Consecutive duplicate words are collapsed (e.g. 'bệnh bệnh')."""
+        doc = _doc("Bệnh nhân bị bệnh bệnh thường kèm theo đau bụng")
+        mentions = extract_mentions(doc, _ts())
+        for m in mentions:
+            assert "bệnh bệnh" not in m.text.lower(), f"Dup not collapsed: {m.text!r}"
+
+    def test_trailing_function_word_trimmed(self) -> None:
+        """Trailing function words like 'nó trở' are trimmed."""
+        doc = _doc("Bệnh nhân phẫu thuật kích thích não sâu nó trở nên kém")
+        mentions = extract_mentions(doc, _ts())
+        proc_mentions = [m for m in mentions if m.mention_type == "procedure"]
+        for m in proc_mentions:
+            assert not m.text.rstrip().endswith("nó")
+
+    def test_sa_sut_cue_extraction(self) -> None:
+        """'sa sút' is recognized as a disease cue."""
+        doc = _doc("Bệnh nhân bị sa sút trí tuệ nặng.")
+        mentions = extract_mentions(doc, _ts())
+        disease_texts = [m.text for m in mentions if m.mention_type == "disease"]
+        assert any("sa sút" in t.lower() for t in disease_texts)
+
+    def test_run_symptom_extraction(self) -> None:
+        """'run' is recognized as a symptom cue (tremor)."""
+        doc = _doc("Bệnh nhân run tay phải liên tục.")
+        mentions = extract_mentions(doc, _ts())
+        symptom_texts = [m.text for m in mentions if m.mention_type == "symptom"]
+        assert any("run" in t.lower() for t in symptom_texts)
+
+    def test_mat_on_dinh_extraction(self) -> None:
+        """'mất ổn định' is recognized as a symptom cue."""
+        doc = _doc("Bệnh nhân mất ổn định tư thế khi đứng.")
+        mentions = extract_mentions(doc, _ts())
+        symptom_texts = [m.text for m in mentions if m.mention_type == "symptom"]
+        assert any("mất ổn định" in t.lower() for t in symptom_texts)
+
+    def test_dong_cung_extraction(self) -> None:
+        """'đông cứng' is recognized as a symptom cue."""
+        doc = _doc("Bệnh nhân đông cứng chi trên.")
+        mentions = extract_mentions(doc, _ts())
+        symptom_texts = [m.text for m in mentions if m.mention_type == "symptom"]
+        assert any("đông cứng" in t.lower() for t in symptom_texts)
+
 
 # ---------------------------------------------------------------------------
 # DC-1 pipeline integration
