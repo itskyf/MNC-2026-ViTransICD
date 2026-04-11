@@ -15,6 +15,7 @@ from mnc.schemas.rule import RuleRecord
 from mnc.schemas.sentence import SentenceSpanRecord
 from mnc.schemas.silver import SilverRecord
 from mnc.schemas.snapshot import SnapshotRecord
+from mnc.schemas.weak_label import WeakEvidenceSpan, WeakLabelRecord
 
 __all__ = [
     "AliasRecord",
@@ -32,4 +33,6 @@ __all__ = [
     "SentenceSpanRecord",
     "SilverRecord",
     "SnapshotRecord",
+    "WeakEvidenceSpan",
+    "WeakLabelRecord",
 ]

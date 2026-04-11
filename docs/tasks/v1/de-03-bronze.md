@@ -69,7 +69,7 @@ Input payload fields:
 
 Mapping:
 
-* raw\_text = transcript
+* raw\_text = transcript + "\n" + summary
 * payload retains transcript and summary
 * doc\_id = "vietmed-sum:{source\_record\_id}"
 

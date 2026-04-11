@@ -28,38 +28,43 @@ _TRIM_TRAILING = re.compile(
     r"|ở|đã|sẽ|này|khi|rất|một|những|các|đó|ra|lại|cũng|vẫn"
     r"|nên|để|về|nhiều|ít|nữa|thì|mà|nếu|bởi|do|vì|ngoài"
     r"|trong|trên|dưới|sau|trước|giữa|tại|theo|hơn|đến|đang"
-    r"|vừa|chưa)$",
+    r"|vừa|chưa|nó|nhé|ạ|đấy|đó|thế|kìa|vậy)$",
 )
+
+_RE_TRAILING_SINGLE = re.compile(r"\s+[a-zA-ZÀ-ỹğğı]$")
+
+_RE_DUP_WORDS = re.compile(r"\b(\w+)\s+\1\b", re.IGNORECASE)
 
 # --- Disease cues ---
 _RE_DISEASE = re.compile(
     r"(?i)\b(bệnh|viêm|ung thư|đột quỵ|suy|xoắn|đái"
-    r"|hội chứng|nhiễm|bạch cầu|đái tháo đường)\b"
-    r"[\w\sÀ-ỹ]{1,40}",
+    r"|hội chứng|nhiễm|bạch cầu|đái tháo đường|sa sút)\b"
+    r"[\w\sÀ-ỹ]{1,25}",
 )
 
 # --- Symptom cues ---
 _SYMPTOM_HEADS = (
     "đau|mệt|sốt|ho|khó thở|chóng mặt|buồn nôn|nôn|mụn|ngứa"
     "|tiêu chảy|táo bón|đổ mồ hôi|mất ngủ|rụng tóc|sưng|chảy máu"
-    "|ra máu|khó chịu|yếu|liệt|co giật"
+    "|ra máu|khó chịu|yếu|liệt|co giật|run|mất ổn định"
+    "|đông cứng|co cứng|giật"
 )
 _RE_SYMPTOM = re.compile(
-    rf"(?i)\b(?:{_SYMPTOM_HEADS})\b[\w\sÀ-ỹ]{{0,25}}",
+    rf"(?i)\b(?:{_SYMPTOM_HEADS})\b[\w\sÀ-ỹ]{{0,20}}",
 )
 
 # --- Diagnosis cues ---
 _RE_DIAGNOSIS = re.compile(
     r"(?i)\b(chẩn đoán|xét nghiệm|chỉ số|kết quả"
     r"|siêu âm|x-quang|chụp|sinh thiết)\b"
-    r"[\w\sÀ-ỹ]{0,30}",
+    r"[\w\sÀ-ỹ]{0,20}",
 )
 
 # --- Procedure cues ---
 _RE_PROCEDURE = re.compile(
     r"(?i)\b(điều trị|phẫu thuật|mổ|truyền|ghép|tiêm"
     r"|thở oxy|xạ trị|hóa trị|vật lý trị liệu)\b"
-    r"[\w\sÀ-ỹ]{0,30}",
+    r"[\w\sÀ-ỹ]{0,20}",
 )
 
 # --- Abbreviation cues ---
@@ -193,10 +198,11 @@ def extract_mentions(
 
 
 def _trim_span(text: str) -> str:
-    """Trim trailing function words and whitespace from a captured span."""
-    out = text.rstrip()
+    """Trim trailing function words, single-char noise, and duplicate words."""
+    out = _RE_DUP_WORDS.sub(r"\1", text.rstrip())
     for _ in range(3):
         new = _TRIM_TRAILING.sub("", out).rstrip()
+        new = _RE_TRAILING_SINGLE.sub("", new).rstrip()
         if new == out:
             break
         out = new

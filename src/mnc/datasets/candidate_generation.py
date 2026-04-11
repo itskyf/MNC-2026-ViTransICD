@@ -35,7 +35,6 @@ from mnc.schemas.document import DocumentRecord
 from mnc.schemas.manifest import BronzeManifest
 from mnc.schemas.mention import MentionRecord
 from mnc.schemas.ontology import OntologyCode
-from mnc.schemas.rule import RuleRecord
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +46,6 @@ _ONTO_PATH = Path(
 )
 _ALIAS_PATH = Path(
     "data/silver/icd10_official_pdf/alias_dictionary/alias_records.jsonl",
-)
-_RULES_PATH = Path(
-    "data/silver/icd10_official_pdf/coding_rules/rule_records.jsonl",
 )
 
 
@@ -98,7 +94,6 @@ class _PathConfig:
     silver_dir: Path = Path("data/silver")
     ontology_path: Path = _ONTO_PATH
     alias_path: Path | None = _ALIAS_PATH
-    rules_path: Path | None = _RULES_PATH
 
 
 # ---------------------------------------------------------------------------
@@ -107,7 +102,7 @@ class _PathConfig:
 
 _EXACT_SCORE = 1.0
 _NORMALIZED_SCORE = 0.85
-_FUZZY_MIN_SCORE = 0.60
+_FUZZY_MIN_SCORE = 0.75
 _MENTION_TOP_K = 10
 _DOC_TOP_K = 20
 _FINAL_TOP_K = 50
@@ -274,27 +269,6 @@ def _query_bm25(
 
 
 # ---------------------------------------------------------------------------
-# ON-3 exclusion pruning
-# ---------------------------------------------------------------------------
-
-
-def _prune_with_rules(
-    candidates: list[CandidateLink],
-    rules: list[RuleRecord],
-) -> list[CandidateLink]:
-    """Remove candidates whose evidence conflicts with exclude rules."""
-    exclude_codes: set[str] = set()
-    for rule in rules:
-        if rule.topic == "exclude_note" and rule.code_3char:
-            exclude_codes.add(rule.code_3char)
-
-    if not exclude_codes:
-        return candidates
-
-    return [c for c in candidates if c.code_3char not in exclude_codes]
-
-
-# ---------------------------------------------------------------------------
 # Core pipeline
 # ---------------------------------------------------------------------------
 
@@ -304,13 +278,6 @@ def _load_optional_aliases(alias_path: Path | None) -> list[AliasRecord]:
     if not alias_path or not alias_path.exists():
         return []
     return [rec for _, rec in iter_jsonl(alias_path, AliasRecord)]
-
-
-def _load_optional_rules(rules_path: Path | None) -> list[RuleRecord]:
-    """Load rule records from an optional path."""
-    if not rules_path or not rules_path.exists():
-        return []
-    return [rec for _, rec in iter_jsonl(rules_path, RuleRecord)]
 
 
 def _mention_candidates(
@@ -458,7 +425,6 @@ def generate_icd_candidates(
     ontology_codes = [rec for _, rec in iter_jsonl(cfg.ontology_path, OntologyCode)]
 
     alias_records = _load_optional_aliases(cfg.alias_path)
-    rule_records = _load_optional_rules(cfg.rules_path)
 
     mention_idx = _MentionIndex(
         title=build_title_index(ontology_codes),
@@ -485,9 +451,6 @@ def generate_icd_candidates(
 
     merged = merge_candidates(mention_links, doc_links)
     ranked = rank_and_cut(merged, _FINAL_TOP_K)
-
-    if rule_records:
-        ranked = _prune_with_rules(ranked, rule_records)
 
     out_dir = cfg.silver_dir / dataset_name / "candidate_links"
     write_jsonl(ranked, out_dir / f"{split}.jsonl")
@@ -551,12 +514,6 @@ def main(argv: list[str] | None = None) -> None:
         type=Path,
         help="Path to alias records JSONL",
     )
-    parser.add_argument(
-        "--rules-path",
-        default=_RULES_PATH,
-        type=Path,
-        help="Path to rule records JSONL",
-    )
     args = parser.parse_args(argv)
 
     if not args.dataset and not args.run_all:
@@ -579,7 +536,6 @@ def main(argv: list[str] | None = None) -> None:
                     silver_dir=args.silver_dir,
                     ontology_path=args.ontology_path,
                     alias_path=args.alias_path,
-                    rules_path=args.rules_path,
                 ),
             )
             logger.info("  %s/%s: %d candidates", name, split, len(result))

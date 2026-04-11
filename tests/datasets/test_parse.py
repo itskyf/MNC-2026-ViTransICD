@@ -67,7 +67,7 @@ class TestVietMedSumDoc:
         assert doc.doc_id == "vietmed-sum:0"
         assert doc.source == "vietmed-sum"
         assert doc.language == "vi"
-        assert doc.raw_text == "Bệnh nhân sốt cao ba ngày."
+        assert doc.raw_text == "Bệnh nhân sốt cao ba ngày.\nTóm tắt bệnh án."
         assert doc.payload["transcript"] == "Bệnh nhân sốt cao ba ngày."
         assert doc.payload["summary"] == "Tóm tắt bệnh án."
         assert doc.split == "train"
@@ -83,6 +83,16 @@ class TestVietMedSumDoc:
         snap.payload = {**snap.payload, "transcript": None}
         with pytest.raises(ValueError, match="transcript"):
             _vietmed_sum_doc(snap)
+
+    def test_summary_content_included_in_raw_text(self) -> None:
+        """Disease names in summary must be available in raw_text."""
+        snap = _vietmed_snapshot(
+            transcript="Bệnh nhân đến khám.",
+            summary="Chẩn đoán bệnh Parkinson.",
+        )
+        doc = _vietmed_sum_doc(snap)
+        assert "Parkinson" in doc.raw_text
+        assert doc.raw_text == "Bệnh nhân đến khám.\nChẩn đoán bệnh Parkinson."
 
 
 class TestViHealthQADoc:
